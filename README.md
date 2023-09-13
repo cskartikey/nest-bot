@@ -8,7 +8,7 @@ Follow these steps to deploy Nest Bot in your environment:
 
 ### Prerequisites
 
-- Python 3.6+
+- Python 3.8+
 - PostgreSQL Database
 - Slack App and Bot Token
 
@@ -43,11 +43,11 @@ Create a `.env` file in your project's root directory and add the following envi
 
 ```dotenv
 SLACK_BOT_TOKEN=your_slack_bot_token
-SQL_DATABASE=your_database_name
-SQL_HOST=your_database_host
-SQL_USER=your_database_user
-SQL_PASSWORD=your_database_password
-SQL_PORT=your_database_port
+SQL_DATABASE="your_database_name"
+SQL_HOST="your_database_host"
+SQL_USER="your_database_user"
+SQL_PASSWORD="your_database_password"
+SQL_PORT="your_database_port"
 SLACK_APP_TOKEN=your_slack_app_token
 ```
 
