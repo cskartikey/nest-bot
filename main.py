@@ -239,7 +239,7 @@ def handle_delete_user(ack, body, client):
     delete_query = """
         DELETE FROM nest_bot.users WHERE slack_user_id=%s
     """
-    cursor.execute(delete_query, (user_id))
+    cursor.execute(delete_query, (user_id,))
     connection.commit()
 
 
