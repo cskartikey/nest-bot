@@ -255,8 +255,6 @@ def handle_delete_user(ack, body, client):
         # show an error, dont know how to do that yet
         pass
 
-
-
 # Start your app
 if __name__ == "__main__":
     SocketModeHandler(app, slack_app_token).start()
