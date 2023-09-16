@@ -227,6 +227,21 @@ def handle_register_user(ack, body, client):
     cursor.execute(insert_query, (slack_user_id, username, ssh_key))
     connection.commit()
 
+@app.action("remove_me")
+def handle_delete_user(ack, body, client):
+    """
+    Delete user view submission
+
+    Called when a user submits a delete request and removes user from PostgreSQL Server
+    """
+    ack()
+    user_id = body["user"]["id"]
+    delete_query = """
+        DELETE FROM nest_bot.users WHERE slack_user_id=%s
+    """
+    cursor.execute(delete_query, (user_id,))
+    connection.commit()
+
 
 # Start your app
 if __name__ == "__main__":
