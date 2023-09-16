@@ -3,6 +3,7 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import os
 import psycopg2 as psql
+import logging
 
 load_dotenv()
 
@@ -20,6 +21,29 @@ connection = psql.connect(
 )
 
 cursor = connection.cursor()
+
+def error_handling(e: psql.Error): 
+    if isinstance(e, psql.InterfaceError):
+        print("InterfaceError occurred.")
+    elif isinstance(e, psql.DatabaseError):
+        if isinstance(e, psql.DataError):
+            print("DatabaseError: DataError occurred.")
+        elif isinstance(e, psql.OperationalError):
+            print("DatabaseError: OperationalError occurred.")
+        elif isinstance(e, psql.IntegrityError):
+            print("DatabaseError: IntegrityError occurred.")
+        elif isinstance(e, psql.InternalError):
+            print("DatabaseError: InternalError occurred.")
+        elif isinstance(e, psql.ProgrammingError):
+            print("DatabaseError: ProgrammingError occurred.")
+        elif isinstance(e, psql.NotSupportedError):
+            print("DatabaseError: NotSupportedError occurred.")
+        else:
+            print("DatabaseError occurred.")
+    elif isinstance(e, psql.Warning):
+        print("Warning occurred.")
+    else:
+        print(f"Other error occurred: {type(e)}")
 
 def home_tab_view_signed(username, ssh_key):
     return {
@@ -128,19 +152,22 @@ def initial_home_tab(client, event, logger):
     SELECT * FROM nest_bot.users
     WHERE slack_user_id = %s;
     """
-    cursor.execute(select_query, (user_id,))
-    result = cursor.fetchone()
-    # Checks if the user is already registered and publishes the view accordingly
-    if result != None:
-        client.views_publish(
-            user_id=event["user"],
-            view=home_tab_view_signed(username=result[2], ssh_key=result[3]),
-        )
-    else:
-        client.views_publish(
-            user_id=event["user"],
-            view=home_tab_view_not_signed(),
-        )
+    try: 
+        cursor.execute(select_query, (user_id,))
+        result = cursor.fetchone()
+        # Checks if the user is already registered and publishes the view accordingly
+        if result != None:
+            client.views_publish(
+                user_id=event["user"],
+                view=home_tab_view_signed(username=result[2], ssh_key=result[3]),
+            )
+        else:
+            client.views_publish(
+                user_id=event["user"],
+                view=home_tab_view_not_signed(),
+            )
+    except psql.Error as e:
+        error_handling(e)
         
 
 
@@ -270,12 +297,6 @@ def register_user(ack, body, client, logger):
         },
     )
 
-@app.action("register_user")
-def register_user(ack, body, client, logger):
-    ack()
-    slack_user_id = body["user"]["id"]
-    
-
 @app.view("register_user")
 def handle_register_user(ack, body, client):
     """
@@ -292,8 +313,11 @@ def handle_register_user(ack, body, client):
     slack_user_id = body["user"]["id"]
     username = body["view"]["state"]["values"]["username"]["username_input"]["value"]
     ssh_key = body["view"]["state"]["values"]["ssh_key"]["ssh_key_input"]["value"]
-    cursor.execute(insert_query, (slack_user_id, username, ssh_key))
-    connection.commit()
+    try:
+        cursor.execute(insert_query, (slack_user_id, username, ssh_key))
+        connection.commit()
+    except Error as e:
+        error_handling(e)
 
 @app.action("remove_me")
 def handle_delete_user(ack, body, client):
@@ -307,8 +331,11 @@ def handle_delete_user(ack, body, client):
     delete_query = """
         DELETE FROM nest_bot.users WHERE slack_user_id=%s
     """
-    cursor.execute(delete_query, (user_id,))
-    connection.commit()
+    try:
+        cursor.execute(delete_query, (user_id,))
+        connection.commit()
+    except Error as e:
+        error_handling(e)
     
 # Start your app
 if __name__ == "__main__":
