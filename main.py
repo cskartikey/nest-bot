@@ -21,7 +21,6 @@ connection = psql.connect(
 
 cursor = connection.cursor()
 
-
 def home_tab_view_signed(username, ssh_key):
     return {
         "type": "home",
@@ -142,6 +141,7 @@ def initial_home_tab(client, event, logger):
             user_id=event["user"],
             view=home_tab_view_not_signed(),
         )
+        
 
 
 @app.action("register_user")
@@ -207,6 +207,74 @@ def register_user(ack, body, client, logger):
         },
     )
 
+@app.action("register_user")
+def register_user(ack, body, client, logger):
+    """
+    Open a registration modal for unregistered users to sign up for Nest.
+
+    This function is triggered when a user clicks the "Register Yourself" button. It acknowledges
+    the action, retrieves the user's Slack display name, and opens a modal for them to enter their
+    registration details (tilde username and SSH key).
+    """
+    ack()
+    slack_user_id = body["user"]["id"]
+    profile_name = (client.users_profile_get(user=slack_user_id))["profile"][
+        "display_name"
+    ]
+    client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "callback_id": "register_user",
+            "type": "modal",
+            "submit": {"type": "plain_text", "text": "Submit", "emoji": True},
+            "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
+            "title": {"type": "plain_text", "text": "Register for Nest", "emoji": True},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f":wave: Hey {profile_name}!\n\nPlease enter the required details to register for Nest!",
+                        "emoji": True,
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "input",
+                    "block_id": "username",
+                    "label": {
+                        "type": "plain_text",
+                        "text": "What is your username?",
+                        "emoji": True,
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "username_input",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "ssh_key",
+                    "label": {
+                        "type": "plain_text",
+                        "text": "What is your public SSH Key?",
+                        "emoji": True,
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "ssh_key_input",
+                        "multiline": True,
+                    },
+                },
+            ],
+        },
+    )
+
+@app.action("register_user")
+def register_user(ack, body, client, logger):
+    ack()
+    slack_user_id = body["user"]["id"]
+    
 
 @app.view("register_user")
 def handle_register_user(ack, body, client):
@@ -241,8 +309,7 @@ def handle_delete_user(ack, body, client):
     """
     cursor.execute(delete_query, (user_id,))
     connection.commit()
-
-
+    
 # Start your app
 if __name__ == "__main__":
     SocketModeHandler(app, slack_app_token).start()
