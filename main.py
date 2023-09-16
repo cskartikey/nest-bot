@@ -12,6 +12,19 @@ slack_app_token = os.environ.get("SLACK_APP_TOKEN")
 
 app = App(token=slack_bot_token)
 
+logging.basicConfig(
+    filename="app.log",
+    filemode="w",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%d-%b-%y %H:%M:%S",
+)
+
+severity_to_logging_level = {
+    "ERROR": 40,
+    "WARNING": 30,
+    "CRITICAL": 50,
+}
+
 connection = psql.connect(
     database=os.environ.get("SQL_DATABASE"),
     host=os.environ.get("SQL_HOST"),
@@ -22,28 +35,58 @@ connection = psql.connect(
 
 cursor = connection.cursor()
 
-def error_handling(e: psql.Error): 
+
+def error_handling(e: psql.Error):
+    severity = getattr(e.diag, "severity", "UNKNOWN")
     if isinstance(e, psql.InterfaceError):
-        print("InterfaceError occurred.")
+        logging.log(
+            level=int(severity_to_logging_level[str(severity)]),
+            msg=f"DatabaseError: InterfaceError occurred.\nMessage:{e.diag.message_primary}",
+        )
     elif isinstance(e, psql.DatabaseError):
         if isinstance(e, psql.DataError):
-            print("DatabaseError: DataError occurred.")
+            logging.log(
+                level=int(severity_to_logging_level[str(severity)]),
+                msg=f"DatabaseError: DataError occurred.\nMessage:{e.diag.message_primary}",
+            )
         elif isinstance(e, psql.OperationalError):
-            print("DatabaseError: OperationalError occurred.")
+            lpogging.log(
+                level=int(severity_to_logging_level[str(severity)]),
+                msg=f"DatabaseError: OperationalError occurred.\nMessage:{e.diag.message_primary}",
+            )
         elif isinstance(e, psql.IntegrityError):
-            print("DatabaseError: IntegrityError occurred.")
+            logging.log(
+                level=int(severity_to_logging_level[str(severity)]),
+                msg=f"DatabaseError: IntegrityError occurred.\nMessage:{e.diag.message_primary}",
+            )
         elif isinstance(e, psql.InternalError):
-            print("DatabaseError: InternalError occurred.")
+            logging.log(
+                level=int(severity_to_logging_level[str(severity)]),
+                msg=f"DatabaseError: InternalError occurred.\nMessage:{e.diag.message_primary}",
+            )
         elif isinstance(e, psql.ProgrammingError):
-            print("DatabaseError: ProgrammingError occurred.")
+            logging.log(
+                level=int(severity_to_logging_level[str(severity)]),
+                msg=f"DatabaseError: ProgrammingError occurred.\nMessage:{e.diag.message_primary}",
+            )
         elif isinstance(e, psql.NotSupportedError):
-            print("DatabaseError: NotSupportedError occurred.")
+            logging.log(
+                level=int(severity_to_logging_level[str(severity)]),
+                msg=f"DatabaseError: NotSupportedError occurred.\nMessage:{e.diag.message_primary}",
+            )
         else:
-            print("DatabaseError occurred.")
+            logging.log(
+                level=int(severity_to_logging_level[str(severity)]),
+                msg=f"DatabaseError occurred of no particular type.\nMessage:{e.diag.message_primary}",
+            )
     elif isinstance(e, psql.Warning):
-        print("Warning occurred.")
+        logging.log(
+            level=int(severity_to_logging_level[str(severity)]),
+            msg=f"Warning occured occurred.\nMessage:{e.diag.message_primary}",
+        )
     else:
-        print(f"Other error occurred: {type(e)}")
+        logger.log(f"Other error occurred: {type(e)}")
+
 
 def home_tab_view_signed(username, ssh_key):
     return {
@@ -152,7 +195,7 @@ def initial_home_tab(client, event, logger):
     SELECT * FROM nest_bot.users
     WHERE slack_user_id = %s;
     """
-    try: 
+    try:
         cursor.execute(select_query, (user_id,))
         result = cursor.fetchone()
         # Checks if the user is already registered and publishes the view accordingly
@@ -168,7 +211,6 @@ def initial_home_tab(client, event, logger):
             )
     except psql.Error as e:
         error_handling(e)
-        
 
 
 @app.action("register_user")
@@ -234,6 +276,7 @@ def register_user(ack, body, client, logger):
         },
     )
 
+
 @app.action("register_user")
 def register_user(ack, body, client, logger):
     """
@@ -296,6 +339,7 @@ def register_user(ack, body, client, logger):
             ],
         },
     )
+
 
 @app.view("register_user")
 def handle_register_user(ack, body, client):
@@ -319,6 +363,7 @@ def handle_register_user(ack, body, client):
     except Error as e:
         error_handling(e)
 
+
 @app.action("remove_me")
 def handle_delete_user(ack, body, client):
     """
@@ -336,7 +381,8 @@ def handle_delete_user(ack, body, client):
         connection.commit()
     except Error as e:
         error_handling(e)
-    
+
+
 # Start your app
 if __name__ == "__main__":
     SocketModeHandler(app, slack_app_token).start()
