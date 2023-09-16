@@ -208,7 +208,7 @@ def register_user(ack, body, client, logger):
     )
 
 
-@app.action("register_user")
+@app.view("register_user")
 def handle_register_user(ack, body, client):
     """
     Handle user registration view submission.
@@ -227,7 +227,7 @@ def handle_register_user(ack, body, client):
     cursor.execute(insert_query, (slack_user_id, username, ssh_key))
     connection.commit()
 
-@app.view("remove_me")
+@app.action("remove_me")
 def handle_delete_user(ack, body, client):
     """
     Delete user view submission
