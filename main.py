@@ -208,7 +208,7 @@ def register_user(ack, body, client, logger):
     )
 
 
-@app.view("register_user")
+@app.action("register_user")
 def handle_register_user(ack, body, client):
     """
     Handle user registration view submission.
