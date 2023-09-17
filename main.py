@@ -20,8 +20,11 @@ logging.basicConfig(
 )
 
 severity_to_logging_level = {
-    "ERROR": 40,
+    "NOTSET": 0,
+    "DEBUG": 10,
+    "INFO": 20,
     "WARNING": 30,
+    "ERROR": 40,
     "CRITICAL": 50,
 }
 
@@ -88,7 +91,7 @@ def error_handling(e: psql.Error):
         logger.log(f"Other error occurred: {type(e)}")
 
 
-def home_tab_view_signed(username, ssh_key):
+def home_tab_view_signed(username, name, email, ssh_key):
     return {
         "type": "home",
         "blocks": [
@@ -113,6 +116,35 @@ def home_tab_view_signed(username, ssh_key):
                     "action_id": "edit_username",
                 },
             },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Your Full Name is:* {name}",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "Edit", "emoji": True},
+                    "value": "edit_name",
+                    "action_id": "edit_name",
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Your E-Mail is:* {email}",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "Edit", "emoji": True},
+                    "value": "edit_email",
+                    "action_id": "edit_email",
+                },
+            },
+            {"type": "divider"},
             {
                 "type": "section",
                 "text": {
@@ -202,7 +234,12 @@ def initial_home_tab(client, event, logger):
         if result != None:
             client.views_publish(
                 user_id=event["user"],
-                view=home_tab_view_signed(username=result[2], ssh_key=result[3]),
+                view=home_tab_view_signed(
+                    username=result[2],
+                    name=result[3],
+                    email=result[4],
+                    ssh_key=result[5],
+                ),
             )
         else:
             client.views_publish(
@@ -260,66 +297,28 @@ def register_user(ack, body, client, logger):
                 },
                 {
                     "type": "input",
-                    "block_id": "ssh_key",
+                    "block_id": "name",
                     "label": {
                         "type": "plain_text",
-                        "text": "What is your public SSH Key?",
+                        "text": "What is your Full Name?",
                         "emoji": True,
                     },
                     "element": {
                         "type": "plain_text_input",
-                        "action_id": "ssh_key_input",
-                        "multiline": True,
+                        "action_id": "name_input",
                     },
                 },
-            ],
-        },
-    )
-
-
-@app.action("register_user")
-def register_user(ack, body, client, logger):
-    """
-    Open a registration modal for unregistered users to sign up for Nest.
-
-    This function is triggered when a user clicks the "Register Yourself" button. It acknowledges
-    the action, retrieves the user's Slack display name, and opens a modal for them to enter their
-    registration details (tilde username and SSH key).
-    """
-    ack()
-    slack_user_id = body["user"]["id"]
-    profile_name = (client.users_profile_get(user=slack_user_id))["profile"][
-        "display_name"
-    ]
-    client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "callback_id": "register_user",
-            "type": "modal",
-            "submit": {"type": "plain_text", "text": "Submit", "emoji": True},
-            "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
-            "title": {"type": "plain_text", "text": "Register for Nest", "emoji": True},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f":wave: Hey {profile_name}!\n\nPlease enter the required details to register for Nest!",
-                        "emoji": True,
-                    },
-                },
-                {"type": "divider"},
                 {
                     "type": "input",
-                    "block_id": "username",
+                    "block_id": "email",
                     "label": {
                         "type": "plain_text",
-                        "text": "What is your username?",
+                        "text": "What is your E-Mail?",
                         "emoji": True,
                     },
                     "element": {
                         "type": "plain_text_input",
-                        "action_id": "username_input",
+                        "action_id": "email_input",
                     },
                 },
                 {
@@ -351,16 +350,22 @@ def handle_register_user(ack, body, client):
     """
     ack()
     insert_query = """
-    INSERT INTO nest_bot.users (slack_user_id, tilde_username, ssh_public_key)
-    VALUES (%s, %s, %s);
+    INSERT INTO nest_bot.users (slack_user_id, name, email, tilde_username, ssh_public_key)
+    VALUES (%s, %s, %s, %s, %s);
     """
     slack_user_id = body["user"]["id"]
     username = body["view"]["state"]["values"]["username"]["username_input"]["value"]
+    name = body["view"]["state"]["values"]["name"]["name_input"]["value"]
+    email = body["view"]["state"]["values"]["email"]["email_input"]["value"]
     ssh_key = body["view"]["state"]["values"]["ssh_key"]["ssh_key_input"]["value"]
     try:
-        cursor.execute(insert_query, (slack_user_id, username, ssh_key))
+        cursor.execute(insert_query, (slack_user_id, name, email, username, ssh_key))
         connection.commit()
-    except Error as e:
+        client.views_update(
+            view_id=body["view"]["id"],
+            view=home_tab_view_signed(username, name, email, ssh_key)
+        )
+    except psql.Error as e:
         error_handling(e)
 
 
@@ -379,7 +384,11 @@ def handle_delete_user(ack, body, client):
     try:
         cursor.execute(delete_query, (user_id,))
         connection.commit()
-    except Error as e:
+        client.views_update(
+            view_id=body["view"]["id"],
+            view=home_tab_view_signed()
+        )
+    except psql.Error as e:
         error_handling(e)
 
 
