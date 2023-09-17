@@ -268,6 +268,7 @@ def register_user(ack, body, client, logger):
         trigger_id=body["trigger_id"],
         view={
             "callback_id": "register_user",
+            # "previous_view_id": f"{body['view'][;d"]}",
             "type": "modal",
             "submit": {"type": "plain_text", "text": "Submit", "emoji": True},
             "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
@@ -361,9 +362,9 @@ def handle_register_user(ack, body, client):
     try:
         cursor.execute(insert_query, (slack_user_id, name, email, username, ssh_key))
         connection.commit()
-        client.views_update(
-            view_id=body["view"]["id"],
-            view=home_tab_view_signed(username, name, email, ssh_key)
+        client.views_publish(
+            user_id=slack_user_id,
+            view=home_tab_view_signed(username=username, name=name, email=email, ssh_key=ssh_key)
         )
     except psql.Error as e:
         error_handling(e)
@@ -386,7 +387,7 @@ def handle_delete_user(ack, body, client):
         connection.commit()
         client.views_update(
             view_id=body["view"]["id"],
-            view=home_tab_view_signed()
+            view=home_tab_view_not_signed()
         )
     except psql.Error as e:
         error_handling(e)

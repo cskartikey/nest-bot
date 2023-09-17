@@ -29,7 +29,7 @@ Follow these steps to deploy Nest Bot in your environment:
       name VARCHAR(255),
       email VARCHAR(255),
       tilde_username VARCHAR(255) UNIQUE NOT NULL,
-      ssh_public_key TEXT NOT NULL,
+      ssh_public_key TEXT NOT NULL
    );
    ```
 
