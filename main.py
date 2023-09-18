@@ -99,7 +99,7 @@ def home_tab_view_signed(username, name, email, ssh_key):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your username and public SSH key, and I'll handle the rest, ensuring a smooth and secure entry into Nest.",
+                    "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your details, and I'll handle the rest.",
                 },
             },
             {"type": "divider"},
@@ -187,7 +187,7 @@ def home_tab_view_not_signed():
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your username and public SSH key, and I'll handle the rest, ensuring a smooth and secure entry into Nest.",
+                    "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your details, and I'll handle the rest.",
                 },
             },
             {
@@ -364,7 +364,9 @@ def handle_register_user(ack, body, client):
         connection.commit()
         client.views_publish(
             user_id=slack_user_id,
-            view=home_tab_view_signed(username=username, name=name, email=email, ssh_key=ssh_key)
+            view=home_tab_view_signed(
+                username=username, name=name, email=email, ssh_key=ssh_key
+            ),
         )
     except psql.Error as e:
         error_handling(e)
@@ -385,10 +387,7 @@ def handle_delete_user(ack, body, client):
     try:
         cursor.execute(delete_query, (user_id,))
         connection.commit()
-        client.views_update(
-            view_id=body["view"]["id"],
-            view=home_tab_view_not_signed()
-        )
+        client.views_update(view_id=body["view"]["id"], view=home_tab_view_not_signed())
     except psql.Error as e:
         error_handling(e)
 
