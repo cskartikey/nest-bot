@@ -235,9 +235,9 @@ def initial_home_tab(client, event, logger):
             client.views_publish(
                 user_id=event["user"],
                 view=home_tab_view_signed(
-                    username=result[2],
-                    name=result[3],
-                    email=result[4],
+                    username=result[4],
+                    name=result[2],
+                    email=result[3],
                     ssh_key=result[5],
                 ),
             )
