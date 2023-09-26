@@ -33,7 +33,8 @@ connection = psql.connect(
     host=os.environ.get("SQL_HOST"),
     user=os.environ.get("SQL_USER"),
     password=os.environ.get("SQL_PASSWORD"),
-    port=os.environ.get("SQL_PORT"),
+    # port=os.environ.get("SQL_PORT"),
+    sslmode='require'
 )
 
 cursor = connection.cursor()
