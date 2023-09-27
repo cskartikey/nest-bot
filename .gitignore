@@ -2,3 +2,4 @@
 .venv
 app.log
 testdata.json
+__pycache__
