@@ -33,8 +33,8 @@ connection = psql.connect(
     host=os.environ.get("SQL_HOST"),
     user=os.environ.get("SQL_USER"),
     password=os.environ.get("SQL_PASSWORD"),
-    # port=os.environ.get("SQL_PORT"),
-    sslmode='require'
+    port=os.environ.get("SQL_PORT"),
+    # sslmode='require' # comment it if you run it on localhost though
 )
 
 cursor = connection.cursor()
@@ -92,10 +92,58 @@ def error_handling(e: psql.Error):
         logger.log(f"Other error occurred: {type(e)}")
 
 
+def get_username(user_id):
+    cursor.execute(
+        "SELECT tilde_username FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+    )
+    username = cursor.fetchone()[0]
+    if username != None:
+        return str(username)
+    else:
+        return None
+
+
+def get_full_name(user_id):
+    cursor.execute(
+        "SELECT name FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+    )
+    name = cursor.fetchone()[0]
+    if name != None:
+        return str(name)
+    else:
+        return None
+
+
+def get_email(user_id):
+    cursor.execute(
+        "SELECT email FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+    )
+    email = cursor.fetchone()[0]
+    if email != None:
+        return str(email)
+    else:
+        return None
+
+
+def get_ssh_key(user_id):
+    cursor.execute(
+        "SELECT ssh_key FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+    )
+    ssh_key = cursor.fetchone()[0]
+    if ssh_key != None:
+        return str(ssh_key)
+    else:
+        return None
+
+
 def home_tab_view_signed(username, name, email, ssh_key):
     return {
         "type": "home",
         "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": "Nest Bot"},
+            },
             {
                 "type": "section",
                 "text": {
@@ -127,8 +175,8 @@ def home_tab_view_signed(username, name, email, ssh_key):
                 "accessory": {
                     "type": "button",
                     "text": {"type": "plain_text", "text": "Edit", "emoji": True},
-                    "value": "edit_name",
-                    "action_id": "edit_name",
+                    "value": "edit_full_name",
+                    "action_id": "edit_full_name",
                 },
             },
             {"type": "divider"},
@@ -185,6 +233,10 @@ def home_tab_view_not_signed():
         "type": "home",
         "blocks": [
             {
+                "type": "header",
+                "text": {"type": "plain_text", "text": "Nest Bot"},
+            },
+            {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
@@ -224,22 +276,17 @@ def initial_home_tab(client, event, logger):
     """
     user_id = event["user"]
     username = client.users_profile_get(user=user_id)["profile"]["display_name"]
-    select_query = """
-    SELECT * FROM nest_bot.users
-    WHERE slack_user_id = %s;
-    """
     try:
-        cursor.execute(select_query, (user_id,))
-        result = cursor.fetchone()
+        name = get_full_name(user_id=user_id)
         # Checks if the user is already registered and publishes the view accordingly
-        if result != None:
+        if name != None:
             client.views_publish(
                 user_id=event["user"],
                 view=home_tab_view_signed(
-                    username=result[4],
-                    name=result[2],
-                    email=result[3],
-                    ssh_key=result[5],
+                    username=get_username(user_id=user_id),
+                    name=name,
+                    email=get_email(user_id=user_id),
+                    ssh_key=get_email(user_id=user_id),
                 ),
             )
         else:
@@ -247,6 +294,8 @@ def initial_home_tab(client, event, logger):
                 user_id=event["user"],
                 view=home_tab_view_not_signed(),
             )
+        global home_id
+        home_id = event["view"]["id"]
     except psql.Error as e:
         error_handling(e)
 
@@ -337,6 +386,20 @@ def register_user(ack, body, client, logger):
                         "multiline": True,
                     },
                 },
+                {
+                    "type": "input",
+                    "block_id": "description",
+                    "label": {
+                        "type": "plain_text",
+                        "text": "What will you use nest for?",
+                        "emoji": True,
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "description_input",
+                        "multiline": True,
+                    },
+                },
             ],
         },
     )
@@ -352,21 +415,94 @@ def handle_register_user(ack, body, client):
     """
     ack()
     insert_query = """
-    INSERT INTO nest_bot.users (slack_user_id, name, email, tilde_username, ssh_public_key)
-    VALUES (%s, %s, %s, %s, %s);
+    INSERT INTO nest_bot.users (slack_user_id, name, email, tilde_username, ssh_public_key, description)
+    VALUES (%s, %s, %s, %s, %s, %s);
     """
     slack_user_id = body["user"]["id"]
     username = body["view"]["state"]["values"]["username"]["username_input"]["value"]
     name = body["view"]["state"]["values"]["name"]["name_input"]["value"]
     email = body["view"]["state"]["values"]["email"]["email_input"]["value"]
     ssh_key = body["view"]["state"]["values"]["ssh_key"]["ssh_key_input"]["value"]
+    description = body["view"]["state"]["values"]["description"]["description_input"][
+        "value"
+    ]
     try:
-        cursor.execute(insert_query, (slack_user_id, name, email, username, ssh_key))
+        cursor.execute(
+            insert_query, (slack_user_id, name, email, username, ssh_key, description)
+        )
         connection.commit()
         client.views_publish(
             user_id=slack_user_id,
             view=home_tab_view_signed(
                 username=username, name=name, email=email, ssh_key=ssh_key
+            ),
+        )
+    except psql.Error as e:
+        error_handling(e)
+
+
+@app.action("edit_full_name")
+def edit_full_name(ack, body, client, logger):
+    ack()
+    user_id = body["user"]["id"]
+    client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "callback_id": "edit_full_name",
+            "title": {"type": "plain_text", "text": "Nest Bot", "emoji": True},
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Edit Full Name",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "name_new",
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "name_new_input",
+                    },
+                    "label": {"type": "plain_text", "text": "New Name", "emoji": True},
+                },
+            ],
+            "submit": {"type": "plain_text", "text": "Submit", "emoji": True},
+            "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
+        },
+    )
+
+
+@app.view("edit_full_name")
+def handle_edit_full_name(ack, body, client, logger):
+    ack()
+    update_query = """
+    UPDATE nest_bot.users 
+    SET name = %s
+    WHERE slack_user_id = %s
+    """
+    user_id = body["user"]["id"]
+    name_new = body["view"]["state"]["values"]["name_new"]["name_new_input"]["value"]
+
+    try: 
+        cursor.execute(
+            update_query,
+            (
+                name_new,
+                user_id,
+            ),
+        )
+        connection.commit()
+        client.views_update(
+            view_id=home_id,
+            view=home_tab_view_signed(
+                username=get_username(user_id=user_id),
+                name=name_new,
+                email=get_email(user_id=user_id),
+                ssh_key=get_email(user_id=user_id),
             ),
         )
     except psql.Error as e:
