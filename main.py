@@ -4,6 +4,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 import os
 import psycopg2 as psql
 import logging
+import db_helpers 
 
 load_dotenv()
 
@@ -11,7 +12,6 @@ slack_bot_token = os.environ.get("SLACK_BOT_TOKEN")
 slack_app_token = os.environ.get("SLACK_APP_TOKEN")
 
 app = App(token=slack_bot_token)
-
 logging.basicConfig(
     filename="app.log",
     filemode="w",
@@ -39,6 +39,7 @@ connection = psql.connect(
 
 cursor = connection.cursor()
 
+home_ids = {}
 
 def error_handling(e: psql.Error):
     severity = getattr(e.diag, "severity", "UNKNOWN")
@@ -90,51 +91,6 @@ def error_handling(e: psql.Error):
         )
     else:
         logger.log(f"Other error occurred: {type(e)}")
-
-
-def get_username(user_id):
-    cursor.execute(
-        "SELECT tilde_username FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
-    )
-    username = cursor.fetchone()[0]
-    if username != None:
-        return str(username)
-    else:
-        return None
-
-
-def get_full_name(user_id):
-    cursor.execute(
-        "SELECT name FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
-    )
-    name = cursor.fetchone()[0]
-    if name != None:
-        return str(name)
-    else:
-        return None
-
-
-def get_email(user_id):
-    cursor.execute(
-        "SELECT email FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
-    )
-    email = cursor.fetchone()[0]
-    if email != None:
-        return str(email)
-    else:
-        return None
-
-
-def get_ssh_key(user_id):
-    cursor.execute(
-        "SELECT ssh_key FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
-    )
-    ssh_key = cursor.fetchone()[0]
-    if ssh_key != None:
-        return str(ssh_key)
-    else:
-        return None
-
 
 def home_tab_view_signed(username, name, email, ssh_key):
     return {
@@ -276,17 +232,18 @@ def initial_home_tab(client, event, logger):
     """
     user_id = event["user"]
     username = client.users_profile_get(user=user_id)["profile"]["display_name"]
+    home_ids[user_id] = event["view"]["id"]
     try:
-        name = get_full_name(user_id=user_id)
+        name = db_helpers.get_full_name(cursor=cursor, user_id=user_id)
         # Checks if the user is already registered and publishes the view accordingly
         if name != None:
             client.views_publish(
                 user_id=event["user"],
                 view=home_tab_view_signed(
-                    username=get_username(user_id=user_id),
+                    username=db_helpers.get_username(cursor=cursor, user_id=user_id),
                     name=name,
-                    email=get_email(user_id=user_id),
-                    ssh_key=get_email(user_id=user_id),
+                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
                 ),
             )
         else:
@@ -294,8 +251,7 @@ def initial_home_tab(client, event, logger):
                 user_id=event["user"],
                 view=home_tab_view_not_signed(),
             )
-        global home_id
-        home_id = event["view"]["id"]
+        
     except psql.Error as e:
         error_handling(e)
 
@@ -486,7 +442,6 @@ def handle_edit_full_name(ack, body, client, logger):
     """
     user_id = body["user"]["id"]
     name_new = body["view"]["state"]["values"]["name_new"]["name_new_input"]["value"]
-
     try: 
         cursor.execute(
             update_query,
@@ -497,12 +452,12 @@ def handle_edit_full_name(ack, body, client, logger):
         )
         connection.commit()
         client.views_update(
-            view_id=home_id,
+            view_id=home_ids[user_id],
             view=home_tab_view_signed(
-                username=get_username(user_id=user_id),
+                username=db_helpers.get_username(cursor=cursor, user_id=user_id),
                 name=name_new,
-                email=get_email(user_id=user_id),
-                ssh_key=get_email(user_id=user_id),
+                email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
             ),
         )
     except psql.Error as e:

@@ -1,4 +1,4 @@
-def get_username(user_id):
+def get_username(cursor, user_id):
     cursor.execute(
         "SELECT tilde_username FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
     )
@@ -9,7 +9,7 @@ def get_username(user_id):
         return None
 
 
-def get_full_name(user_id):
+def get_full_name(cursor, user_id):
     cursor.execute(
         "SELECT name FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
     )
@@ -20,7 +20,7 @@ def get_full_name(user_id):
         return None
 
 
-def get_email(user_id):
+def get_email(cursor, user_id):
     cursor.execute(
         "SELECT email FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
     )
@@ -31,7 +31,7 @@ def get_email(user_id):
         return None
 
 
-def get_ssh_key(user_id):
+def get_ssh_key(cursor, user_id):
     cursor.execute(
         "SELECT ssh_key FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
     )
