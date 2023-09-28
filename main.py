@@ -391,10 +391,11 @@ def handle_edit_email(ack, body, client, logger):
     """
     user_id = body["user"]["id"]
     email_new = body["view"]["state"]["values"]["email_new"]["email_new_input"]["value"]
+    errors = {}
     if email_new is not None:
         email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
         if not re.match(email_pattern, email_new):
-            errors["email"] = "Invalid email"
+            errors["email_new"] = "Invalid email"
             ack(response_action="errors", errors=errors)
             return
     ack()
@@ -455,3 +456,4 @@ def handle_delete_user(ack, body, client):
 # Start your app
 if __name__ == "__main__":
     SocketModeHandler(app, slack_app_token).start()
+c
