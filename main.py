@@ -6,6 +6,7 @@ import psycopg2 as psql
 import logging
 import db_helpers
 import json
+import re
 
 load_dotenv()
 
@@ -238,6 +239,12 @@ def handle_register_user(ack, body, client):
             errors["username"] = "The username is taken. Please choose another username"
             ack(response_action="errors", errors=errors)
             return
+    if email is not None:
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
+        if not re.match(email_pattern, email):
+            errors["email"] = "Invalid email"
+            ack(response_action="errors", errors=errors)
+            return
     if description is not None and len(description) < 10:
         errors["description"] = "The description should be larger than 10 characters."
         ack(response_action="errors", errors=errors)
@@ -377,7 +384,6 @@ def handle_username(ack, body, client, logger):
 
 @app.view("edit_email")
 def handle_edit_email(ack, body, client, logger):
-    ack()
     update_query = """
     UPDATE nest_bot.users 
     SET email = %s
@@ -385,6 +391,13 @@ def handle_edit_email(ack, body, client, logger):
     """
     user_id = body["user"]["id"]
     email_new = body["view"]["state"]["values"]["email_new"]["email_new_input"]["value"]
+    if email_new is not None:
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
+        if not re.match(email_pattern, email_new):
+            errors["email"] = "Invalid email"
+            ack(response_action="errors", errors=errors)
+            return
+    ack()
     try:
         cursor.execute(
             update_query,
