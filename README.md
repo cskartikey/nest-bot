@@ -26,11 +26,12 @@ Follow these steps to deploy Nest Bot in your environment:
    CREATE TABLE nest_bot.users (
       id SERIAL PRIMARY KEY,
       slack_user_id VARCHAR(255) UNIQUE NOT NULL,
+      tilde_username VARCHAR(255) UNIQUE NOT NULL,
       name VARCHAR(255),
       email VARCHAR(255),
-      tilde_username VARCHAR(255) UNIQUE NOT NULL,
       ssh_public_key TEXT NOT NULL,
-      description TEXT NOT NULL;
+      description TEXT NOT NULL,
+      is_approved BOOLEAN DEFAULT FALSE
    );
    ```
 
