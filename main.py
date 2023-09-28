@@ -94,22 +94,40 @@ def error_handling(e: psql.Error):
     else:
         logger.log(f"Other error occurred: {type(e)}")
 
+
 def approved_home(username, name, email, ssh_key):
     with open("json/approved_home.json", "r") as read_file:
         data = json.load(read_file)
-    data["blocks"][3]["text"]["text"] = data["blocks"][3]["text"]["text"].format(username=username)
-    data["blocks"][5]["text"]["text"] = data["blocks"][5]["text"]["text"].format(name=name)
-    data["blocks"][7]["text"]["text"] = data["blocks"][7]["text"]["text"].format(email=email)
-    data["blocks"][9]["text"]["text"] = data["blocks"][9]["text"]["text"].format(ssh_key=ssh_key)
+    data["blocks"][3]["text"]["text"] = data["blocks"][3]["text"]["text"].format(
+        username=username
+    )
+    data["blocks"][5]["text"]["text"] = data["blocks"][5]["text"]["text"].format(
+        name=name
+    )
+    data["blocks"][7]["text"]["text"] = data["blocks"][7]["text"]["text"].format(
+        email=email
+    )
+    data["blocks"][9]["text"]["text"] = data["blocks"][9]["text"]["text"].format(
+        ssh_key=ssh_key
+    )
     return data
+
 
 def unapproved_home(username, name, email, ssh_key):
     with open("json/unapproved_home.json", "r") as read_file:
         data = json.load(read_file)
-    data["blocks"][3]["text"]["text"] = data["blocks"][3]["text"]["text"].format(username=username)
-    data["blocks"][5]["text"]["text"] = data["blocks"][5]["text"]["text"].format(name=name)
-    data["blocks"][7]["text"]["text"] = data["blocks"][7]["text"]["text"].format(email=email)
-    data["blocks"][9]["text"]["text"] = data["blocks"][9]["text"]["text"].format(ssh_key=ssh_key)
+    data["blocks"][3]["text"]["text"] = data["blocks"][3]["text"]["text"].format(
+        username=username
+    )
+    data["blocks"][5]["text"]["text"] = data["blocks"][5]["text"]["text"].format(
+        name=name
+    )
+    data["blocks"][7]["text"]["text"] = data["blocks"][7]["text"]["text"].format(
+        email=email
+    )
+    data["blocks"][9]["text"]["text"] = data["blocks"][9]["text"]["text"].format(
+        ssh_key=ssh_key
+    )
     return data
 
 
@@ -145,7 +163,7 @@ def initial_home_tab(client, event, logger):
                 ),
             )
         elif name != None and not status:
-                client.views_publish(
+            client.views_publish(
                 user_id=event["user"],
                 view=unapproved_home(
                     username=db_helpers.get_username(cursor=cursor, user_id=user_id),
@@ -178,13 +196,12 @@ def register_user(ack, body, client, logger):
     profile_name = (client.users_profile_get(user=slack_user_id))["profile"][
         "display_name"
     ]
-    with open ("json/register_user.json", "r") as read_file:
+    with open("json/register_user.json", "r") as read_file:
         data = json.load(read_file)
-    data["blocks"][0]["text"]["text"] = data["blocks"][0]["text"]["text"].format(profile_name=profile_name)
-    client.views_open(
-        trigger_id=body["trigger_id"],
-        view=data
+    data["blocks"][0]["text"]["text"] = data["blocks"][0]["text"]["text"].format(
+        profile_name=profile_name
     )
+    client.views_open(trigger_id=body["trigger_id"], view=data)
 
 
 @app.view("register_user")
@@ -196,7 +213,7 @@ def handle_register_user(ack, body, client):
     It inserts the provided details into the PostgreSQL server.
     :todo: SSH Key validation
     """
-    
+
     insert_query = """
     INSERT INTO nest_bot.users (slack_user_id, name, email, tilde_username, ssh_public_key, description)
     VALUES (%s, %s, %s, %s, %s, %s);
@@ -212,13 +229,16 @@ def handle_register_user(ack, body, client):
     ]
 
     if username is not None:
-        cursor.execute("SELECT tilde_username FROM nest_bot.users WHERE tilde_username=%s", [username])
+        cursor.execute(
+            "SELECT tilde_username FROM nest_bot.users WHERE tilde_username=%s",
+            [username],
+        )
         result = cursor.fetchone()
         if result is not None and result[0] == username:
             errors["username"] = "The username is taken. Please choose another username"
             ack(response_action="errors", errors=errors)
             return
-    if description is not None and len(description) < 10: 
+    if description is not None and len(description) < 10:
         errors["description"] = "The description should be larger than 10 characters."
         ack(response_action="errors", errors=errors)
         return
@@ -242,35 +262,27 @@ def handle_register_user(ack, body, client):
 def edit_full_name(ack, body, client, logger):
     ack()
     user_id = body["user"]["id"]
-    client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "callback_id": "edit_full_name",
-            "title": {"type": "plain_text", "text": "Nest Bot", "emoji": True},
-            "blocks": [
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Edit Full Name",
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "input",
-                    "block_id": "name_new",
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "name_new_input",
-                    },
-                    "label": {"type": "plain_text", "text": "New Name", "emoji": True},
-                },
-            ],
-            "submit": {"type": "plain_text", "text": "Submit", "emoji": True},
-            "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
-        },
-    )
+    with open("json/edit_full_name.json", "r") as read_file:
+        data = json.load(read_file)
+    client.views_open(trigger_id=body["trigger_id"], view=data)
+
+
+@app.action("edit_username")
+def edit_full_name(ack, body, client, logger):
+    ack()
+    user_id = body["user"]["id"]
+    with open("json/edit_username.json", "r") as read_file:
+        data = json.load(read_file)
+    client.views_open(trigger_id=body["trigger_id"], view=data)
+
+
+@app.action("edit_email")
+def edit_full_name(ack, body, client, logger):
+    ack()
+    user_id = body["user"]["id"]
+    with open("json/edit_email.json", "r") as read_file:
+        data = json.load(read_file)
+    client.views_open(trigger_id=body["trigger_id"], view=data)
 
 
 @app.view("edit_full_name")
@@ -300,7 +312,7 @@ def handle_edit_full_name(ack, body, client, logger):
                     username=db_helpers.get_username(cursor=cursor, user_id=user_id),
                     name=name_new,
                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
                 ),
             )
         else:
@@ -310,7 +322,97 @@ def handle_edit_full_name(ack, body, client, logger):
                     username=db_helpers.get_username(cursor=cursor, user_id=user_id),
                     name=name_new,
                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
+                ),
+            )
+    except psql.Error as e:
+        error_handling(e)
+
+
+@app.view("edit_username")
+def handle_username(ack, body, client, logger):
+    ack()
+    update_query = """
+    UPDATE nest_bot.users 
+    SET tilde_username = %s
+    WHERE slack_user_id = %s
+    """
+    user_id = body["user"]["id"]
+    username_new = body["view"]["state"]["values"]["username_new"][
+        "username_new_input"
+    ]["value"]
+    try:
+        cursor.execute(
+            update_query,
+            (
+                username_new,
+                user_id,
+            ),
+        )
+        connection.commit()
+        status = db_helpers.get_status(cursor=cursor, user_id=user_id)
+        if status:
+            client.views_update(
+                view_id=home_ids[user_id],
+                view=approved_home(
+                    username=username_new,
+                    name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
+                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
+                ),
+            )
+        else:
+            client.views_update(
+                view_id=home_ids[user_id],
+                view=unapproved_home(
+                    username=username_new,
+                    name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
+                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
+                ),
+            )
+    except psql.Error as e:
+        error_handling(e)
+
+
+@app.view("edit_email")
+def handle_edit_email(ack, body, client, logger):
+    ack()
+    update_query = """
+    UPDATE nest_bot.users 
+    SET email = %s
+    WHERE slack_user_id = %s
+    """
+    user_id = body["user"]["id"]
+    email_new = body["view"]["state"]["values"]["email_new"]["email_new_input"]["value"]
+    try:
+        cursor.execute(
+            update_query,
+            (
+                email_new,
+                user_id,
+            ),
+        )
+        connection.commit()
+        status = db_helpers.get_status(cursor=cursor, user_id=user_id)
+        if status:
+            client.views_update(
+                view_id=home_ids[user_id],
+                view=approved_home(
+                    username=db_helpers.get_username(cursor=cursor, user_id=user_id),
+                    name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
+                    email=email_new,
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
+                ),
+            )
+        else:
+            client.views_update(
+                view_id=home_ids[user_id],
+                view=unapproved_home(
+                    username=db_helpers.get_username(cursor=cursor, user_id=user_id),
+                    name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
+                    email=email_new,
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
                 ),
             )
     except psql.Error as e:
