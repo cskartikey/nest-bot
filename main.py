@@ -159,7 +159,7 @@ def initial_home_tab(client, event, logger):
                     username=db_helpers.get_username(cursor=cursor, user_id=user_id),
                     name=name,
                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
                 ),
             )
         elif name != None and not status:
@@ -169,7 +169,7 @@ def initial_home_tab(client, event, logger):
                     username=db_helpers.get_username(cursor=cursor, user_id=user_id),
                     name=name,
                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
                 ),
             )
         else:
