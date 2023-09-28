@@ -1,0 +1,38 @@
+{
+  "type": "home",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Nest Bot"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your details, and I'll handle the rest."
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Register yourself!",
+            "emoji": true
+          },
+          "style": "primary",
+          "value": "register_user",
+          "action_id": "register_user"
+        }
+      ]
+    }
+  ]
+}
