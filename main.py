@@ -4,7 +4,8 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 import os
 import psycopg2 as psql
 import logging
-import db_helpers 
+import db_helpers
+import json
 
 load_dotenv()
 
@@ -40,6 +41,7 @@ connection = psql.connect(
 cursor = connection.cursor()
 
 home_ids = {}
+
 
 def error_handling(e: psql.Error):
     severity = getattr(e.diag, "severity", "UNKNOWN")
@@ -92,134 +94,29 @@ def error_handling(e: psql.Error):
     else:
         logger.log(f"Other error occurred: {type(e)}")
 
-def home_tab_view_signed(username, name, email, ssh_key):
-    return {
-        "type": "home",
-        "blocks": [
-            {
-                "type": "header",
-                "text": {"type": "plain_text", "text": "Nest Bot"},
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your details, and I'll handle the rest.",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Your Tilde Username:* {username}",
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": "Edit", "emoji": True},
-                    "value": "edit_username",
-                    "action_id": "edit_username",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Your Full Name is:* {name}",
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": "Edit", "emoji": True},
-                    "value": "edit_full_name",
-                    "action_id": "edit_full_name",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Your E-Mail is:* {email}",
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": "Edit", "emoji": True},
-                    "value": "edit_email",
-                    "action_id": "edit_email",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Your SSH public key is:* `{ssh_key}`",
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": "Edit", "emoji": True},
-                    "value": "edit_ssh_key",
-                    "action_id": "edit_ssh_key",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Delete me!",
-                            "emoji": True,
-                        },
-                        "style": "danger",
-                        "value": "remove_me",
-                        "action_id": "remove_me",
-                    },
-                ],
-            },
-        ],
-    }
+def approved_home(username, name, email, ssh_key):
+    with open("json/approved_home.json", "r") as read_file:
+        data = json.load(read_file)
+    data["blocks"][3]["text"]["text"] = data["blocks"][3]["text"]["text"].format(username=username)
+    data["blocks"][5]["text"]["text"] = data["blocks"][5]["text"]["text"].format(name=name)
+    data["blocks"][7]["text"]["text"] = data["blocks"][7]["text"]["text"].format(email=email)
+    data["blocks"][9]["text"]["text"] = data["blocks"][9]["text"]["text"].format(ssh_key=ssh_key)
+    return data
+
+def unapproved_home(username, name, email, ssh_key):
+    with open("json/unapproved_home.json", "r") as read_file:
+        data = json.load(read_file)
+    data["blocks"][3]["text"]["text"] = data["blocks"][3]["text"]["text"].format(username=username)
+    data["blocks"][5]["text"]["text"] = data["blocks"][5]["text"]["text"].format(name=name)
+    data["blocks"][7]["text"]["text"] = data["blocks"][7]["text"]["text"].format(email=email)
+    data["blocks"][9]["text"]["text"] = data["blocks"][9]["text"]["text"].format(ssh_key=ssh_key)
+    return data
 
 
-def home_tab_view_not_signed():
-    return {
-        "type": "home",
-        "blocks": [
-            {
-                "type": "header",
-                "text": {"type": "plain_text", "text": "Nest Bot"},
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your details, and I'll handle the rest.",
-                },
-            },
-            {
-                "type": "divider",
-            },
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Register yourself!",
-                            "emoji": True,
-                        },
-                        "style": "primary",
-                        "value": "register_user",
-                        "action_id": "register_user",
-                    }
-                ],
-            },
-        ],
-    }
+def unsigned_home():
+    with open("json/unsigned_home.json", "r") as read_file:
+        data = json.load(read_file)
+    return data
 
 
 @app.event("app_home_opened")
@@ -235,11 +132,22 @@ def initial_home_tab(client, event, logger):
     home_ids[user_id] = event["view"]["id"]
     try:
         name = db_helpers.get_full_name(cursor=cursor, user_id=user_id)
+        status = db_helpers.get_status(cursor=cursor, user_id=user_id)
         # Checks if the user is already registered and publishes the view accordingly
-        if name != None:
+        if name != None and status:
             client.views_publish(
                 user_id=event["user"],
-                view=home_tab_view_signed(
+                view=approved_home(
+                    username=db_helpers.get_username(cursor=cursor, user_id=user_id),
+                    name=name,
+                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                ),
+            )
+        elif name != None and not status:
+                client.views_publish(
+                user_id=event["user"],
+                view=unapproved_home(
                     username=db_helpers.get_username(cursor=cursor, user_id=user_id),
                     name=name,
                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
@@ -249,9 +157,9 @@ def initial_home_tab(client, event, logger):
         else:
             client.views_publish(
                 user_id=event["user"],
-                view=home_tab_view_not_signed(),
+                view=unsigned_home(),
             )
-        
+
     except psql.Error as e:
         error_handling(e)
 
@@ -270,94 +178,12 @@ def register_user(ack, body, client, logger):
     profile_name = (client.users_profile_get(user=slack_user_id))["profile"][
         "display_name"
     ]
+    with open ("json/register_user.json", "r") as read_file:
+        data = json.load(read_file)
+    data["blocks"][0]["text"]["text"] = data["blocks"][0]["text"]["text"].format(profile_name=profile_name)
     client.views_open(
         trigger_id=body["trigger_id"],
-        view={
-            "callback_id": "register_user",
-            # "previous_view_id": f"{body['view'][;d"]}",
-            "type": "modal",
-            "submit": {"type": "plain_text", "text": "Submit", "emoji": True},
-            "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
-            "title": {"type": "plain_text", "text": "Register for Nest", "emoji": True},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f":wave: Hey {profile_name}!\n\nPlease enter the required details to register for Nest!",
-                        "emoji": True,
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "input",
-                    "block_id": "username",
-                    "label": {
-                        "type": "plain_text",
-                        "text": "What is your username?",
-                        "emoji": True,
-                    },
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "username_input",
-                    },
-                },
-                {
-                    "type": "input",
-                    "block_id": "name",
-                    "label": {
-                        "type": "plain_text",
-                        "text": "What is your Full Name?",
-                        "emoji": True,
-                    },
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "name_input",
-                    },
-                },
-                {
-                    "type": "input",
-                    "block_id": "email",
-                    "label": {
-                        "type": "plain_text",
-                        "text": "What is your E-Mail?",
-                        "emoji": True,
-                    },
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "email_input",
-                    },
-                },
-                {
-                    "type": "input",
-                    "block_id": "ssh_key",
-                    "label": {
-                        "type": "plain_text",
-                        "text": "What is your public SSH Key?",
-                        "emoji": True,
-                    },
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "ssh_key_input",
-                        "multiline": True,
-                    },
-                },
-                {
-                    "type": "input",
-                    "block_id": "description",
-                    "label": {
-                        "type": "plain_text",
-                        "text": "What will you use nest for?",
-                        "emoji": True,
-                    },
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "description_input",
-                        "multiline": True,
-                    },
-                },
-            ],
-        },
+        view=data
     )
 
 
@@ -368,12 +194,14 @@ def handle_register_user(ack, body, client):
 
     This function is called when a user submits their registration details through a Slack modal view.
     It inserts the provided details into the PostgreSQL server.
+    :todo: SSH Key validation
     """
-    ack()
+    
     insert_query = """
     INSERT INTO nest_bot.users (slack_user_id, name, email, tilde_username, ssh_public_key, description)
     VALUES (%s, %s, %s, %s, %s, %s);
     """
+    errors = {}
     slack_user_id = body["user"]["id"]
     username = body["view"]["state"]["values"]["username"]["username_input"]["value"]
     name = body["view"]["state"]["values"]["name"]["name_input"]["value"]
@@ -382,6 +210,19 @@ def handle_register_user(ack, body, client):
     description = body["view"]["state"]["values"]["description"]["description_input"][
         "value"
     ]
+
+    if username is not None:
+        cursor.execute("SELECT tilde_username FROM nest_bot.users WHERE tilde_username=%s", [username])
+        result = cursor.fetchone()
+        if result is not None and result[0] == username:
+            errors["username"] = "The username is taken. Please choose another username"
+            ack(response_action="errors", errors=errors)
+            return
+    if description is not None and len(description) < 10: 
+        errors["description"] = "The description should be larger than 10 characters."
+        ack(response_action="errors", errors=errors)
+        return
+    ack()
     try:
         cursor.execute(
             insert_query, (slack_user_id, name, email, username, ssh_key, description)
@@ -389,7 +230,7 @@ def handle_register_user(ack, body, client):
         connection.commit()
         client.views_publish(
             user_id=slack_user_id,
-            view=home_tab_view_signed(
+            view=unapproved_home(
                 username=username, name=name, email=email, ssh_key=ssh_key
             ),
         )
@@ -442,7 +283,7 @@ def handle_edit_full_name(ack, body, client, logger):
     """
     user_id = body["user"]["id"]
     name_new = body["view"]["state"]["values"]["name_new"]["name_new_input"]["value"]
-    try: 
+    try:
         cursor.execute(
             update_query,
             (
@@ -451,15 +292,27 @@ def handle_edit_full_name(ack, body, client, logger):
             ),
         )
         connection.commit()
-        client.views_update(
-            view_id=home_ids[user_id],
-            view=home_tab_view_signed(
-                username=db_helpers.get_username(cursor=cursor, user_id=user_id),
-                name=name_new,
-                email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-                ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
-            ),
-        )
+        status = db_helpers.get_status(cursor=cursor, user_id=user_id)
+        if status:
+            client.views_update(
+                view_id=home_ids[user_id],
+                view=approved_home(
+                    username=db_helpers.get_username(cursor=cursor, user_id=user_id),
+                    name=name_new,
+                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                ),
+            )
+        else:
+            client.views_update(
+                view_id=home_ids[user_id],
+                view=unapproved_home(
+                    username=db_helpers.get_username(cursor=cursor, user_id=user_id),
+                    name=name_new,
+                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                    ssh_key=db_helpers.get_email(cursor=cursor, user_id=user_id),
+                ),
+            )
     except psql.Error as e:
         error_handling(e)
 
@@ -479,7 +332,7 @@ def handle_delete_user(ack, body, client):
     try:
         cursor.execute(delete_query, (user_id,))
         connection.commit()
-        client.views_update(view_id=body["view"]["id"], view=home_tab_view_not_signed())
+        client.views_update(view_id=body["view"]["id"], view=unsigned_home())
     except psql.Error as e:
         error_handling(e)
 
