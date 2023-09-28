@@ -47,7 +47,7 @@ def get_email(cursor, user_id):
 def get_ssh_key(cursor, user_id):
     try:
         cursor.execute(
-            "SELECT ssh_key FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+            "SELECT ssh_public_key FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
         )
         result = cursor.fetchone()
         if result is not None and result[0] is not None:
