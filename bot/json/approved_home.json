@@ -73,16 +73,6 @@
       "text": {
         "type": "mrkdwn",
         "text": "*Your SSH public key is:* `{ssh_key}`"
-      },
-      "accessory": {
-        "type": "button",
-        "text": {
-          "type": "plain_text",
-          "text": "Edit",
-          "emoji": true
-        },
-        "value": "edit_ssh_key",
-        "action_id": "edit_ssh_key"
       }
     },
     {
