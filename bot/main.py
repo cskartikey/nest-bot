@@ -71,6 +71,26 @@ def unsigned_home():
     return data
 
 
+def send_message(client, user_id, name, username, email, ssh_key, description):
+    with open("json/send_message.json", "r") as read_file:
+        data = json.load(read_file)
+    details = {
+        "name": name,
+        "username": username,
+        "email": email,
+        "ssh_key": ssh_key,
+        "description": description,
+    }
+    data[0]["text"]["text"] = data[0]["text"]["text"].format(slack_user=user_id)
+
+    data[1]["text"]["text"] = data[1]["text"]["text"].format(**details)
+    client.chat_postMessage(
+        channel="C05VBD1B7V4",
+        blocks=data,
+        text=f"<@{user_id}> is requesting an approval for Nest",
+    )
+
+
 @app.event("app_home_opened")
 def initial_home_tab(client, event, logger):
     """
@@ -136,6 +156,7 @@ def register_user(ack, body, client, logger):
         profile_name=profile_name
     )
     client.views_open(trigger_id=body["trigger_id"], view=data)
+    client.chat_postMessage(channel=slack_user_id, text="Keen an eye out on your DMs you will recieve a notification within 24 hours about your approval status.")
 
 
 @app.view("register_user")
@@ -185,6 +206,7 @@ def handle_register_user(ack, body, client):
             insert_query, (slack_user_id, name, email, username, ssh_key, description)
         )
         connection.commit()
+        send_message(client, slack_user_id, name, username, email, ssh_key, description)
         client.views_publish(
             user_id=slack_user_id,
             view=unapproved_home(
@@ -367,6 +389,27 @@ def handle_delete_user(ack, body, client):
         client.views_update(view_id=body["view"]["id"], view=unsigned_home())
     except psql.Error as e:
         error_handling(e)
+
+
+@app.action("deny_action")
+def handle_deny_action(ack, body, client):
+    ack()
+    admin_user_id = body["user"]["id"]
+    thread_ts = body["container"]["message_ts"]
+    channel_id = body["container"]["channel_id"]
+    block = body["message"]["blocks"]
+    new_text = {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"Denied by <@{admin_user_id}>",
+        },
+    }
+    user_id = block[0]["text"]["text"].split("@")[1]
+    block[2] = new_text
+    client.chat_postMessage(channel=user_id, text=f"Your request for nest has been denied by <@{admin_user_id}>. Please DM them directly for changes and apply again!")
+    client.chat_update(channel=channel_id,ts=thread_ts, blocks=block)
+    client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text=f"Denied by <@{admin_user_id}>")
 
 
 # Start your app
