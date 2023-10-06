@@ -4,7 +4,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 import os
 import psycopg2 as psql
 import logging
-import db_helpers
+import helpers.db_helpers as db_helpers
 import json
 import re
 
@@ -215,10 +215,7 @@ def handle_register_user(ack, body, client):
     :todo: SSH Key validation
     """
 
-    insert_query = """
-    INSERT INTO nest_bot.users (slack_user_id, name, email, tilde_username, ssh_public_key, description)
-    VALUES (%s, %s, %s, %s, %s, %s);
-    """
+    insert_query = db_helpers.read_sql_query("sql/register_user.sql")
     errors = {}
     slack_user_id = body["user"]["id"]
     username = body["view"]["state"]["values"]["username"]["username_input"]["value"]
@@ -228,10 +225,10 @@ def handle_register_user(ack, body, client):
     description = body["view"]["state"]["values"]["description"]["description_input"][
         "value"
     ]
-
+    selectUser = db_helpers.read_sql_query("sql/selectUser.sql")
     if username is not None:
         cursor.execute(
-            "SELECT tilde_username FROM nest_bot.users WHERE tilde_username=%s",
+            selectUser,
             [username],
         )
         result = cursor.fetchone()
@@ -274,13 +271,13 @@ def edit_full_name(ack, body, client, logger):
     client.views_open(trigger_id=body["trigger_id"], view=data)
 
 
-@app.action("edit_username")
-def edit_full_name(ack, body, client, logger):
-    ack()
-    user_id = body["user"]["id"]
-    with open("json/edit_username.json", "r") as read_file:
-        data = json.load(read_file)
-    client.views_open(trigger_id=body["trigger_id"], view=data)
+# @app.action("edit_username")
+# def edit_full_name(ack, body, client, logger):
+#     ack()
+#     user_id = body["user"]["id"]
+#     with open("json/edit_username.json", "r") as read_file:
+#         data = json.load(read_file)
+#     client.views_open(trigger_id=body["trigger_id"], view=data)
 
 
 @app.action("edit_email")
@@ -295,11 +292,7 @@ def edit_full_name(ack, body, client, logger):
 @app.view("edit_full_name")
 def handle_edit_full_name(ack, body, client, logger):
     ack()
-    update_query = """
-    UPDATE nest_bot.users 
-    SET name = %s
-    WHERE slack_user_id = %s
-    """
+    update_query = db_helpers.read_sql_query("sql/update_full_name.sql")
     user_id = body["user"]["id"]
     name_new = body["view"]["state"]["values"]["name_new"]["name_new_input"]["value"]
     try:
@@ -336,59 +329,51 @@ def handle_edit_full_name(ack, body, client, logger):
         error_handling(e)
 
 
-@app.view("edit_username")
-def handle_username(ack, body, client, logger):
-    ack()
-    update_query = """
-    UPDATE nest_bot.users 
-    SET tilde_username = %s
-    WHERE slack_user_id = %s
-    """
-    user_id = body["user"]["id"]
-    username_new = body["view"]["state"]["values"]["username_new"][
-        "username_new_input"
-    ]["value"]
-    try:
-        cursor.execute(
-            update_query,
-            (
-                username_new,
-                user_id,
-            ),
-        )
-        connection.commit()
-        status = db_helpers.get_status(cursor=cursor, user_id=user_id)
-        if status:
-            client.views_update(
-                view_id=home_ids[user_id],
-                view=approved_home(
-                    username=username_new,
-                    name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
-                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
-                ),
-            )
-        else:
-            client.views_update(
-                view_id=home_ids[user_id],
-                view=unapproved_home(
-                    username=username_new,
-                    name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
-                    email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-                    ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
-                ),
-            )
-    except psql.Error as e:
-        error_handling(e)
+# @app.view("edit_username")
+# def handle_username(ack, body, client, logger):
+#     ack()
+#     update_query = db_helpers.read_sql_query("bot/sql/update_query.sql")
+#     user_id = body["user"]["id"]
+#     username_new = body["view"]["state"]["values"]["username_new"][
+#         "username_new_input"
+#     ]["value"]
+#     try:
+#         cursor.execute(
+#             update_query,
+#             (
+#                 username_new,
+#                 user_id,
+#             ),
+#         )
+#         connection.commit()
+#         status = db_helpers.get_status(cursor=cursor, user_id=user_id)
+#         if status:
+#             client.views_update(
+#                 view_id=home_ids[user_id],
+#                 view=approved_home(
+#                     username=username_new,
+#                     name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
+#                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+#                     ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
+#                 ),
+#             )
+#         else:
+#             client.views_update(
+#                 view_id=home_ids[user_id],
+#                 view=unapproved_home(
+#                     username=username_new,
+#                     name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
+#                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
+#                     ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
+#                 ),
+#             )
+#     except psql.Error as e:
+#         error_handling(e)
 
 
 @app.view("edit_email")
 def handle_edit_email(ack, body, client, logger):
-    update_query = """
-    UPDATE nest_bot.users 
-    SET email = %s
-    WHERE slack_user_id = %s
-    """
+    update_query = db_helpers.read_sql_query("sql/update_email.sql")
     user_id = body["user"]["id"]
     email_new = body["view"]["state"]["values"]["email_new"]["email_new_input"]["value"]
     errors = {}
@@ -442,9 +427,7 @@ def handle_delete_user(ack, body, client):
     """
     ack()
     user_id = body["user"]["id"]
-    delete_query = """
-        DELETE FROM nest_bot.users WHERE slack_user_id=%s
-    """
+    delete_query = db_helpers.read_sql_query("sql/delete_user.sql")
     try:
         cursor.execute(delete_query, (user_id,))
         connection.commit()
@@ -456,4 +439,3 @@ def handle_delete_user(ack, body, client):
 # Start your app
 if __name__ == "__main__":
     SocketModeHandler(app, slack_app_token).start()
-c

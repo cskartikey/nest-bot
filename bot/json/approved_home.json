@@ -23,16 +23,6 @@
       "text": {
         "type": "mrkdwn",
         "text": "*Your Tilde Username:* {username}"
-      },
-      "accessory": {
-        "type": "button",
-        "text": {
-          "type": "plain_text",
-          "text": "Edit",
-          "emoji": true
-        },
-        "value": "edit_username",
-        "action_id": "edit_username"
       }
     },
     {

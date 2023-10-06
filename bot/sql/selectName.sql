@@ -1,0 +1,1 @@
+SELECT name FROM nest_bot.users WHERE slack_user_id = %s

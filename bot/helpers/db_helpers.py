@@ -1,7 +1,13 @@
-def get_username(cursor, user_id):
+from pathlib import Path
+
+def read_sql_query(sql_path: Path) -> str:
+    return Path(sql_path).read_text()
+
+
+def get_username(cursor, user_id) -> str:
     try:
         cursor.execute(
-            "SELECT tilde_username FROM nest_bot.users WHERE slack_user_id = %s",
+            read_sql_query("sql/selectUser.sql"),
             [user_id],
         )
         result = cursor.fetchone()
@@ -17,7 +23,7 @@ def get_username(cursor, user_id):
 def get_full_name(cursor, user_id):
     try:
         cursor.execute(
-            "SELECT name FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+            read_sql_query("sql/selectName.sql"), [user_id]
         )
         result = cursor.fetchone()
         if result is not None and result[0] is not None:
@@ -32,7 +38,7 @@ def get_full_name(cursor, user_id):
 def get_email(cursor, user_id):
     try:
         cursor.execute(
-            "SELECT email FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+            read_sql_query("sql/selectEmail.sql"), [user_id]
         )
         result = cursor.fetchone()
         if result is not None and result[0] is not None:
@@ -47,7 +53,7 @@ def get_email(cursor, user_id):
 def get_ssh_key(cursor, user_id):
     try:
         cursor.execute(
-            "SELECT ssh_public_key FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+            read_sql_query("sql/selectKey.sql"), [user_id]
         )
         result = cursor.fetchone()
         if result is not None and result[0] is not None:
@@ -62,7 +68,7 @@ def get_ssh_key(cursor, user_id):
 def get_status(cursor, user_id):
     try:
         cursor.execute(
-            "SELECT is_approved FROM nest_bot.users WHERE slack_user_id = %s", [user_id]
+            read_sql_query("sql/getStatus.sql"), [user_id]
         )
         result = cursor.fetchone()
         if result is not None and result[0] is not None:
