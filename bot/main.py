@@ -348,6 +348,44 @@ def handle_delete_user(ack, body, client):
         error_handling(e)
 
 
+@app.action("approve_action")
+def handle_approve_action(ack, body, client):
+    ack()
+    update_query = db_helpers.read_sql_query("sql/update_status.sql")
+    admin_user_id = body["user"]["id"]
+    thread_ts = body["container"]["message_ts"]
+    channel_id = body["container"]["channel_id"]
+    block = body["message"]["blocks"]
+    new_text = {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"Approved by <@{admin_user_id}>",
+        },
+    }
+    user_id = re.findall(r"<@(\w+)>", block[0]["text"]["text"])[0]
+    block[2] = new_text
+    client.chat_postMessage(
+        channel=user_id,
+        text=f"Your request for nest has been Approved by <@{admin_user_id}>",
+    )
+    client.chat_update(
+        channel=channel_id,
+        ts=thread_ts,
+        blocks=block,
+        text=f"Approved by <@{admin_user_id}>",
+    )
+    client.chat_postMessage(
+        channel=channel_id, thread_ts=thread_ts, text=f"Approved by <@{admin_user_id}>"
+    )
+    try:
+        cursor.execute(update_query, (user_id,))
+        connection.commit()
+    except psql.Error as e:
+        error_handling(e)
+
+
+
 @app.action("deny_action")
 def handle_deny_action(ack, body, client):
     ack()
