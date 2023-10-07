@@ -85,7 +85,7 @@ def send_message(client, user_id, name, username, email, ssh_key, description):
 
     data[1]["text"]["text"] = data[1]["text"]["text"].format(**details)
     client.chat_postMessage(
-        channel="C05VBD1B7V4",
+        channel="D05S0E2U5K5",
         blocks=data,
         text=f"<@{user_id}> is requesting an approval for Nest",
     )
@@ -156,7 +156,6 @@ def register_user(ack, body, client, logger):
         profile_name=profile_name
     )
     client.views_open(trigger_id=body["trigger_id"], view=data)
-    client.chat_postMessage(channel=slack_user_id, text="Keen an eye out on your DMs you will recieve a notification within 24 hours about your approval status.")
 
 
 @app.view("register_user")
@@ -166,7 +165,6 @@ def handle_register_user(ack, body, client):
 
     This function is called when a user submits their registration details through a Slack modal view.
     It inserts the provided details into the PostgreSQL server.
-    :todo: SSH Key validation
     """
 
     insert_query = db_helpers.read_sql_query("sql/register_user.sql")
@@ -196,6 +194,12 @@ def handle_register_user(ack, body, client):
             errors["email"] = "Invalid email"
             ack(response_action="errors", errors=errors)
             return
+    if ssh_key is not None:
+        ssh_pattern = r"ssh-(ed25519|rsa|dss|ecdsa) AAAA(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{4})( [^@]+@[^@]+)?"
+        if not re.match(ssh_pattern, ssh_key):
+            errors["ssh_key"] = "Invalid ssh_key"
+            ack(response_action="errors", errors=errors)
+            return
     if description is not None and len(description) < 10:
         errors["description"] = "The description should be larger than 10 characters."
         ack(response_action="errors", errors=errors)
@@ -213,6 +217,10 @@ def handle_register_user(ack, body, client):
                 username=username, name=name, email=email, ssh_key=ssh_key
             ),
         )
+        client.chat_postMessage(
+            channel=slack_user_id,
+            text="Keen an eye out on your DMs you will recieve a notification within 24 hours about your approval status.",
+        )
     except psql.Error as e:
         error_handling(e)
 
@@ -224,15 +232,6 @@ def edit_full_name(ack, body, client, logger):
     with open("json/edit_full_name.json", "r") as read_file:
         data = json.load(read_file)
     client.views_open(trigger_id=body["trigger_id"], view=data)
-
-
-# @app.action("edit_username")
-# def edit_full_name(ack, body, client, logger):
-#     ack()
-#     user_id = body["user"]["id"]
-#     with open("json/edit_username.json", "r") as read_file:
-#         data = json.load(read_file)
-#     client.views_open(trigger_id=body["trigger_id"], view=data)
 
 
 @app.action("edit_email")
@@ -282,48 +281,6 @@ def handle_edit_full_name(ack, body, client, logger):
             )
     except psql.Error as e:
         error_handling(e)
-
-
-# @app.view("edit_username")
-# def handle_username(ack, body, client, logger):
-#     ack()
-#     update_query = db_helpers.read_sql_query("bot/sql/update_query.sql")
-#     user_id = body["user"]["id"]
-#     username_new = body["view"]["state"]["values"]["username_new"][
-#         "username_new_input"
-#     ]["value"]
-#     try:
-#         cursor.execute(
-#             update_query,
-#             (
-#                 username_new,
-#                 user_id,
-#             ),
-#         )
-#         connection.commit()
-#         status = db_helpers.get_status(cursor=cursor, user_id=user_id)
-#         if status:
-#             client.views_update(
-#                 view_id=home_ids[user_id],
-#                 view=approved_home(
-#                     username=username_new,
-#                     name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
-#                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-#                     ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
-#                 ),
-#             )
-#         else:
-#             client.views_update(
-#                 view_id=home_ids[user_id],
-#                 view=unapproved_home(
-#                     username=username_new,
-#                     name=db_helpers.get_full_name(cursor=cursor, user_id=user_id),
-#                     email=db_helpers.get_email(cursor=cursor, user_id=user_id),
-#                     ssh_key=db_helpers.get_ssh_key(cursor=cursor, user_id=user_id),
-#                 ),
-#             )
-#     except psql.Error as e:
-#         error_handling(e)
 
 
 @app.view("edit_email")
@@ -394,6 +351,7 @@ def handle_delete_user(ack, body, client):
 @app.action("deny_action")
 def handle_deny_action(ack, body, client):
     ack()
+    delete_query = db_helpers.read_sql_query("sql/delete_user.sql")
     admin_user_id = body["user"]["id"]
     thread_ts = body["container"]["message_ts"]
     channel_id = body["container"]["channel_id"]
@@ -405,11 +363,26 @@ def handle_deny_action(ack, body, client):
             "text": f"Denied by <@{admin_user_id}>",
         },
     }
-    user_id = block[0]["text"]["text"].split("@")[1]
+    user_id = re.findall(r"<@(\w+)>", block[0]["text"]["text"])[0]
     block[2] = new_text
-    client.chat_postMessage(channel=user_id, text=f"Your request for nest has been denied by <@{admin_user_id}>. Please DM them directly for changes and apply again!")
-    client.chat_update(channel=channel_id,ts=thread_ts, blocks=block)
-    client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text=f"Denied by <@{admin_user_id}>")
+    client.chat_postMessage(
+        channel=user_id,
+        text=f"Your request for nest has been denied by <@{admin_user_id}>. Please DM them directly for changes and apply again!",
+    )
+    client.chat_update(
+        channel=channel_id,
+        ts=thread_ts,
+        blocks=block,
+        text=f"Denied by <@{admin_user_id}>",
+    )
+    client.chat_postMessage(
+        channel=channel_id, thread_ts=thread_ts, text=f"Denied by <@{admin_user_id}>"
+    )
+    try:
+        cursor.execute(delete_query, (user_id,))
+        connection.commit()
+    except psql.Error as e:
+        error_handling(e)
 
 
 # Start your app
