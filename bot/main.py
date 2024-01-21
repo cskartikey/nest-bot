@@ -7,6 +7,7 @@ from utils import error_handling
 import helpers.db_helpers as db_helpers
 import json
 import re
+import httpx
 
 load_dotenv()
 
@@ -14,7 +15,6 @@ slack_bot_token = os.environ.get("SLACK_BOT_TOKEN")
 slack_app_token = os.environ.get("SLACK_APP_TOKEN")
 
 app = App(token=slack_bot_token)
-
 connection = psql.connect(
     database=os.environ.get("SQL_DATABASE"),
     host=os.environ.get("SQL_HOST"),
@@ -27,6 +27,62 @@ connection = psql.connect(
 cursor = connection.cursor()
 
 home_ids = {}
+
+
+def populate_users():
+    url = "http://127.0.0.1:8000/check_conflict"
+    response = httpx.get(url=url)
+    users = response.json()
+    slack_user_id = 0
+    insert_query = db_helpers.read_sql_query("sql/register_user.sql")
+    description = "Populated by populate_users() function"
+    try:
+        for user in users:
+            username = user.get("username")
+            name = user.get("name")
+            email = user.get("email")
+            sshKey = (
+                user["attributes"].get("sshPublicKey") if "attributes" in user else None
+            )
+            if sshKey is None:
+                sshKey = "None supplied by populate_users()"
+            slack_user_id = slack_user_id - 1
+            cursor.execute(
+                insert_query,
+                (slack_user_id, name, email, username, sshKey, description),
+            )
+            connection.commit()
+    except Exception as e:
+        print(e)
+
+
+def authorize(slack_user_id):
+    url = "http://127.0.0.1:8000/register_user"
+    selectUser = db_helpers.read_sql_query("sql/selectUserFromSlackID.sql")
+    cursor.execute(
+        selectUser,
+        [slack_user_id],
+    )
+    result = cursor.fetchone()
+    username = result[2]
+    name = result[3]
+    email = result[4]
+    attributes = {"sshPublicKey": result[5]}
+    dataInDict = {
+        "username": username,
+        "name": name,
+        "email": email,
+        "attributes": attributes,
+    }
+    try:
+        response = httpx.post(url=url, data=json.dumps(dataInDict))
+        password = json.loads(response.text)
+        if response.status_code == 200:
+            return password.get("password")
+        else:
+            return False
+    except Exception as e:
+        pass
 
 
 def approved_home(username, name, email, ssh_key):
@@ -85,7 +141,7 @@ def send_message(client, user_id, name, username, email, ssh_key, description):
 
     data[1]["text"]["text"] = data[1]["text"]["text"].format(**details)
     client.chat_postMessage(
-        channel="D05S0E2U5K5",
+        channel="C05VBD1B7V4",  # the private nest-registration channel ID
         blocks=data,
         text=f"<@{user_id}> is requesting an approval for Nest",
     )
@@ -99,10 +155,11 @@ def initial_home_tab(client, event, logger):
     This function is triggered when a user opens the app's home tab. It checks whether the user
     is already registered and publishes the appropriate view (signed or not signed) accordingly.
     """
-    user_id = event["user"]
-    username = client.users_profile_get(user=user_id)["profile"]["display_name"]
-    home_ids[user_id] = event["view"]["id"]
+
     try:
+        user_id = event["user"]
+        username = client.users_profile_get(user=user_id)["profile"]["display_name"]
+        # home_ids[user_id] = event["view"]["id"]
         name = db_helpers.get_full_name(cursor=cursor, user_id=user_id)
         status = db_helpers.get_status(cursor=cursor, user_id=user_id)
         # Checks if the user is already registered and publishes the view accordingly
@@ -132,8 +189,9 @@ def initial_home_tab(client, event, logger):
                 view=unsigned_home(),
             )
 
-    except psql.Error as e:
-        error_handling(e)
+    except Exception as e:
+        print(e)
+        # error_handling(e)
 
 
 @app.action("register_user")
@@ -379,11 +437,17 @@ def handle_approve_action(ack, body, client):
         channel=channel_id, thread_ts=thread_ts, text=f"Approved by <@{admin_user_id}>"
     )
     try:
+        password = authorize(user_id)
+        if password != False:
+            client.chat_postMessage(
+                channel=user_id,
+                text=f"Your password for your nest username is {password}. Please login and change it at https://identity.hackclub.app/",
+            )
         cursor.execute(update_query, (user_id,))
         connection.commit()
+
     except psql.Error as e:
         error_handling(e)
-
 
 
 @app.action("deny_action")
