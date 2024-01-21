@@ -25,7 +25,7 @@ Follow these steps to deploy Nest Bot in your environment:
    ```sql
    CREATE TABLE nest_bot.users (
       id SERIAL PRIMARY KEY,
-      slack_user_id VARCHAR(255) UNIQUE NOT NULL,
+      slack_user_id VARCHAR(255)  UNIQUE NOT NULL,
       tilde_username VARCHAR(255) UNIQUE NOT NULL,
       name VARCHAR(255),
       email VARCHAR(255),
@@ -59,6 +59,7 @@ Replace `your_slack_bot_token`, `your_database_name`, `your_database_host`, `you
 
 ### Install Dependencies
 
+Note: Switch to psycopg2 **NOT BINARY** on production
 Install the required Python dependencies using the `requirements.txt` file:
 
 ```bash
