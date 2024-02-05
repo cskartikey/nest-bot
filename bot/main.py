@@ -30,7 +30,7 @@ home_ids = {}
 
 
 def populate_users():
-    url = "http://127.0.0.1:8000/check_conflict"
+    url = "http://127.0.0.1:41896/check_conflict"
     response = httpx.get(url=url)
     users = response.json()
     slack_user_id = 0
@@ -57,7 +57,7 @@ def populate_users():
 
 
 def authorize(slack_user_id):
-    url = "http://127.0.0.1:8000/register_user"
+    url = "http://127.0.0.1:41896/register_user"
     selectUser = db_helpers.read_sql_query("sql/selectUserFromSlackID.sql")
     cursor.execute(
         selectUser,
