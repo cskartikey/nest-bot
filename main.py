@@ -12,7 +12,7 @@ import sys
 import json
 import string
 import random
-
+from bot.os.osFunctions import generate_config
 
 ROOT_URL = "https://identity.hackclub.app/api/v3/"
 load_dotenv()
@@ -108,7 +108,8 @@ async def check_conflict(users: List[User] = Depends(get_users_dependency)):
         for user in users
         if user.type == Role.internal
     ]
-
+    generate_config("cskartikey")
+    generate_configHome("cskartikey")
     return users
 
 
