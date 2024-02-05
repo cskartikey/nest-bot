@@ -12,7 +12,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your details, and I'll handle the rest."
+        "text": "Welcome to Nest! Here's your profile - if you have any questions, ask in the #nest channel!"
       }
     },
     {
@@ -22,7 +22,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your Tilde Username:* {username}"
+        "text": "*Nest Username:* {username}"
       }
     },
     {
@@ -32,7 +32,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your Full Name is:* {name}"
+        "text": "*Full Name:* {name}"
       },
       "accessory": {
         "type": "button",
@@ -52,7 +52,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your E-Mail is:* {email}"
+        "text": "*Email:* {email}"
       },
       "accessory": {
         "type": "button",
@@ -72,27 +72,11 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your SSH public key is:* `{ssh_key}`"
+        "text": "*SSH Public Key:* `{ssh_key}`"
       }
     },
     {
       "type": "divider"
-    },
-    {
-      "type": "actions",
-      "elements": [
-        {
-          "type": "button",
-          "text": {
-            "type": "plain_text",
-            "text": "Delete me!",
-            "emoji": true
-          },
-          "style": "danger",
-          "value": "remove_me",
-          "action_id": "remove_me"
-        }
-      ]
     }
   ]
 }

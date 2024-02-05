@@ -287,7 +287,7 @@ def handle_register_user(ack, body, client):
         )
         client.chat_postMessage(
             channel=slack_user_id,
-            text="Keen an eye out on your DMs you will recieve a notification within 24 hours about your approval status.",
+            text="Keep an eye out in your DMs -  you'll recieve a notification within 24 hours about your approval status!",
         )
     except psql.Error as e:
         error_handling(e)
@@ -397,23 +397,23 @@ def handle_edit_email(ack, body, client, logger):
     except psql.Error as e:
         error_handling(e)
 
+# Disabled in production
+# @app.action("remove_me")
+# def handle_delete_user(ack, body, client):
+#     """
+#     Delete user view submission
 
-@app.action("remove_me")
-def handle_delete_user(ack, body, client):
-    """
-    Delete user view submission
-
-    Called when a user submits a delete request and removes user from PostgreSQL Server
-    """
-    ack()
-    user_id = body["user"]["id"]
-    delete_query = db_helpers.read_sql_query("sql/delete_user.sql")
-    try:
-        cursor.execute(delete_query, (user_id,))
-        connection.commit()
-        client.views_update(view_id=body["view"]["id"], view=unsigned_home())
-    except psql.Error as e:
-        error_handling(e)
+#     Called when a user submits a delete request and removes user from PostgreSQL Server
+#     """
+#     ack()
+#     user_id = body["user"]["id"]
+#     delete_query = db_helpers.read_sql_query("sql/delete_user.sql")
+#     try:
+#         cursor.execute(delete_query, (user_id,))
+#         connection.commit()
+#         client.views_update(view_id=body["view"]["id"], view=unsigned_home())
+#     except psql.Error as e:
+#         error_handling(e)
 
 
 @app.action("approve_action")
@@ -435,7 +435,7 @@ def handle_approve_action(ack, body, client):
     block[2] = new_text
     client.chat_postMessage(
         channel=user_id,
-        text=f"Your request for nest has been Approved by <@{admin_user_id}>",
+        text=f"Your request to get access to Nest has been approved!",
     )
     client.chat_update(
         channel=channel_id,
@@ -449,9 +449,13 @@ def handle_approve_action(ack, body, client):
     try:
         password = authorize(user_id)
         if password != False:
+            with open("json/markdown_message.json", "r") as read_file:
+                pwd_blocks = json.load(read_file)
+            pwd_blocks[0]["text"]["text"] = f"Your password for your Nest account is `{password}`. Please continue through our Quickstart guide at https://guides.hackclub.app/index.php/Quickstart#Creating_an_Account."
             client.chat_postMessage(
                 channel=user_id,
-                text=f"Your password for your nest username is {password}. Please login and change it at https://identity.hackclub.app/",
+                blocks=pwd_blocks,
+                text="Your password for your Nest account is {password}. Please continue through our Quickstart guide at https://guides.hackclub.app/index.php/Quickstart#Creating_an_Account.",
             )
         cursor.execute(update_query, (user_id,))
         connection.commit()
@@ -479,7 +483,7 @@ def handle_deny_action(ack, body, client):
     block[2] = new_text
     client.chat_postMessage(
         channel=user_id,
-        text=f"Your request for nest has been denied by <@{admin_user_id}>. Please DM them directly for changes and apply again!",
+        text=f"Your request to get access to Nest has been denied. Please DM <@{admin_user_id}> for more information.",
     )
     client.chat_update(
         channel=channel_id,
