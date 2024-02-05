@@ -154,7 +154,7 @@ async def register_user(user: User):
 
         response.raise_for_status()
         generate_config(user.username)
-        generate_configHome(user.username)
+        # generate_configHome(user.username)
     except Exception as e:
         print(f"Unexpected error: {e}")
 

@@ -489,4 +489,5 @@ def handle_deny_action(ack, body, client):
 
 # Start your app
 if __name__ == "__main__":
+    populate_users()
     SocketModeHandler(app, slack_app_token).start()
