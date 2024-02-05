@@ -108,8 +108,6 @@ async def check_conflict(users: List[User] = Depends(get_users_dependency)):
         for user in users
         if user.type == Role.internal
     ]
-    generate_config("cskartikey")
-    generate_configHome("cskartikey")
     return users
 
 
@@ -155,7 +153,8 @@ async def register_user(user: User):
         passwordResponse.raise_for_status()
 
         response.raise_for_status()
-
+        generate_config(user.username)
+        generate_configHome(user.username)
     except Exception as e:
         print(f"Unexpected error: {e}")
 

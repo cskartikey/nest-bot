@@ -17,7 +17,7 @@ def generate_configHome(username):
     with open(config_dir, "r") as file:
         config = file.read()
         config = config.replace("<username>", username)
-        write(username, config)
+        write_to_home(username, config)
 
 
 def append_to_caddyfile(config):
@@ -27,5 +27,5 @@ def append_to_caddyfile(config):
 
 def write_to_home(username, config):
     caddyfile_path = f"/home/{username}/Caddyfile"
-    with open(caddyfile_path, "r") as caddyfile:
+    with open(caddyfile_path, "w") as caddyfile:
         caddyfile.write(config)

@@ -1,3 +1,4 @@
+
 <username>.hackclub.app {
   reverse_proxy unix//home/<username>/.webserver.sock {
     health_status 2xx
