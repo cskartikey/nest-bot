@@ -73,6 +73,16 @@ def authorize(slack_user_id):
         "name": name,
         "email": email,
         "attributes": attributes,
+        # Optionals
+        "pk": None,
+        "is_active": None,
+        "last_login": None,
+        "is_superuser": None,
+        "groups": None,
+        "avatar": None,
+        "uid": None,
+        "path": None,
+        "type": None
     }
     try:
         response = httpx.post(url=url, data=json.dumps(dataInDict))
