@@ -33,7 +33,7 @@
       "block_id": "username",
       "label": {
         "type": "plain_text",
-        "text": "What is your username?",
+        "text": "Nest username? (This will be your subdomain)",
         "emoji": true
       },
       "element": {
@@ -46,7 +46,7 @@
       "block_id": "name",
       "label": {
         "type": "plain_text",
-        "text": "What is your Full Name?",
+        "text": "Full name?",
         "emoji": true
       },
       "element": {
@@ -59,7 +59,7 @@
       "block_id": "email",
       "label": {
         "type": "plain_text",
-        "text": "What is your E-Mail?",
+        "text": "Email?",
         "emoji": true
       },
       "element": {
@@ -72,7 +72,7 @@
       "block_id": "ssh_key",
       "label": {
         "type": "plain_text",
-        "text": "What is your public SSH Key?",
+        "text": "Public SSH key?",
         "emoji": true
       },
       "element": {
@@ -86,7 +86,7 @@
       "block_id": "description",
       "label": {
         "type": "plain_text",
-        "text": "What will you use nest for?",
+        "text": "What do you plan to use Nest for?",
         "emoji": true
       },
       "element": {

@@ -12,7 +12,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "Hey there, I'm Nest Bot! My main gig is simplifying the Nest registration process for you. Just provide your details, and I'll handle the rest."
+        "text": "Your Nest account is pending approval! Here's your profile:"
       }
     },
     {
@@ -22,7 +22,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your Tilde Username:* {username}"
+        "text": "*Nest Username:* {username}"
       }
     },
     {
@@ -32,17 +32,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your Full Name is:* {name}"
-      },
-      "accessory": {
-        "type": "button",
-        "text": {
-          "type": "plain_text",
-          "text": "Edit",
-          "emoji": true
-        },
-        "value": "edit_full_name",
-        "action_id": "edit_full_name"
+        "text": "*Full Name:* {name}"
       }
     },
     {
@@ -52,17 +42,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your E-Mail is:* {email}"
-      },
-      "accessory": {
-        "type": "button",
-        "text": {
-          "type": "plain_text",
-          "text": "Edit",
-          "emoji": true
-        },
-        "value": "edit_email",
-        "action_id": "edit_email"
+        "text": "*Email:* {email}"
       }
     },
     {
@@ -72,25 +52,8 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Your SSH public key is:* `{ssh_key}`"
+        "text": "*SSH Public Key:* `{ssh_key}`"
       }
-    },
-    {
-      "type": "divider"
-    },
-    {
-      "type": "actions",
-      "elements": [
-        {
-          "type": "button",
-          "text": {
-            "type": "plain_text",
-            "text": "Approval Pending",
-            "emoji": true
-          },
-          "value": "approval_pending"
-        }
-      ]
     }
   ]
 }
