@@ -1,8 +1,8 @@
 {
-	admin unix//home/samuel/.caddy-admin.sock
+	admin off
 }
-https://<username>.hackclub.app {
-	bind unix/.webserver.sock
-    root * /home/<username>/pub
+http://<username>.hackclub.app {
+	bind unix/.webserver.sock|777
+	root * /home/<username>/pub
 	file_server
 }

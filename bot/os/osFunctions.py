@@ -1,6 +1,7 @@
-import sys
 import os
 
+def setup_script(username):
+    os.system('sudo /home/nest-internal/nest-bot/bot/os/scripts/setup.sh ' + username)
 
 def generate_config(username):
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -26,6 +27,10 @@ def append_to_caddyfile(config):
 
 
 def write_to_home(username, config):
+    os.system('sudo /home/nest-internal/nest-bot/bot/os/scripts/create_home.sh ' + username)
+
     caddyfile_path = f"/home/{username}/Caddyfile"
     with open(caddyfile_path, "w") as caddyfile:
         caddyfile.write(config)
+
+    os.system('sudo /home/nest-internal/nest-bot/bot/os/scripts/start_caddy.sh ' + username)
