@@ -12,7 +12,7 @@ import sys
 import json
 import string
 import random
-from bot.os.osFunctions import generate_config
+from bot.os.osFunctions import generate_config, generate_configHome, setup_script
 
 ROOT_URL = "https://identity.hackclub.app/api/v3/"
 load_dotenv()
@@ -154,7 +154,8 @@ async def register_user(user: User):
 
         response.raise_for_status()
         generate_config(user.username)
-        # generate_configHome(user.username)
+        setup_script(user.username)
+        generate_configHome(user.username)
     except Exception as e:
         print(f"Unexpected error: {e}")
 
