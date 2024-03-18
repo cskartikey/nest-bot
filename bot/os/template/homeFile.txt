@@ -4,5 +4,7 @@
 http://<username>.hackclub.app {
 	bind unix/.webserver.sock|777
 	root * /home/<username>/pub
-	file_server
+	file_server {
+		hide .git .env
+	}
 }
