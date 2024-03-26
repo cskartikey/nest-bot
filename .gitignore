@@ -4,3 +4,4 @@ app.log
 testdata.json
 __pycache__
 .vscode
+test.py

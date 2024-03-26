@@ -31,7 +31,8 @@ Follow these steps to deploy Nest Bot in your environment:
       email VARCHAR(255),
       ssh_public_key TEXT NOT NULL,
       description TEXT NOT NULL,
-      is_approved BOOLEAN DEFAULT FALSE
+      is_approved BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT '1970-01-01 00:00:00 UTC';
    );
    ```
 

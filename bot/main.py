@@ -8,6 +8,8 @@ import helpers.db_helpers as db_helpers
 import json
 import re
 import httpx
+from datetime import datetime, timezone
+
 
 load_dotenv()
 
@@ -30,13 +32,14 @@ home_ids = {}
 
 
 def populate_users():
-    url = "http://127.0.0.1:41896/check_conflict"
-    response = httpx.get(url=url)
-    users = response.json()
-    slack_user_id = 0
-    insert_query = db_helpers.read_sql_query("sql/register_user.sql")
-    description = "Populated by populate_users() function"
     try:
+        url = "http://127.0.0.1:41896/check_conflict"
+        response = httpx.get(url=url)
+        users = response.json()
+        slack_user_id = 0
+        insert_query = db_helpers.read_sql_query("sql/register_user.sql")
+        description = "Populated by populate_users() function"
+        epoch_start = datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         for user in users:
             username = user.get("username")
             name = user.get("name")
@@ -49,7 +52,15 @@ def populate_users():
             slack_user_id = slack_user_id - 1
             cursor.execute(
                 insert_query,
-                (slack_user_id, name, email, username, sshKey, description),
+                (
+                    slack_user_id,
+                    name,
+                    email,
+                    username,
+                    sshKey,
+                    description,
+                    epoch_start,
+                ),
             )
             connection.commit()
     except Exception as e:
@@ -82,7 +93,7 @@ def authorize(slack_user_id):
         "avatar": None,
         "uid": None,
         "path": None,
-        "type": None
+        "type": None,
     }
     try:
         response = httpx.post(url=url, data=json.dumps(dataInDict))
@@ -245,6 +256,7 @@ def handle_register_user(ack, body, client):
     description = body["view"]["state"]["values"]["description"]["description_input"][
         "value"
     ]
+    current_utc_time = datetime.now(timezone.utc)
     selectUser = db_helpers.read_sql_query("sql/selectUser.sql")
     if username is not None:
         cursor.execute(
@@ -275,7 +287,16 @@ def handle_register_user(ack, body, client):
     ack()
     try:
         cursor.execute(
-            insert_query, (slack_user_id, name, email, username, ssh_key, description)
+            insert_query,
+            (
+                slack_user_id,
+                name,
+                email,
+                username,
+                ssh_key,
+                description,
+                current_utc_time,
+            ),
         )
         connection.commit()
         send_message(client, slack_user_id, name, username, email, ssh_key, description)
@@ -397,6 +418,7 @@ def handle_edit_email(ack, body, client, logger):
     except psql.Error as e:
         error_handling(e)
 
+
 # Disabled in production
 # @app.action("remove_me")
 # def handle_delete_user(ack, body, client):
@@ -451,7 +473,9 @@ def handle_approve_action(ack, body, client):
         if password != False:
             with open("json/markdown_message.json", "r") as read_file:
                 pwd_blocks = json.load(read_file)
-            pwd_blocks[0]["text"]["text"] = f"Your password for your Nest account is `{password}`. Please continue through our Quickstart guide at https://guides.hackclub.app/index.php/Quickstart#Creating_an_Account."
+            pwd_blocks[0]["text"][
+                "text"
+            ] = f"Your password for your Nest account is `{password}`. Please continue through our Quickstart guide at https://guides.hackclub.app/index.php/Quickstart#Creating_an_Account."
             client.chat_postMessage(
                 channel=user_id,
                 blocks=pwd_blocks,
@@ -503,5 +527,5 @@ def handle_deny_action(ack, body, client):
 
 # Start your app
 if __name__ == "__main__":
-    populate_users()
+    # populate_users()
     SocketModeHandler(app, slack_app_token).start()

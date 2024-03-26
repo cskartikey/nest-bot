@@ -98,6 +98,8 @@ async def get_users_dependency():
 
 @app.get("/check_conflict")
 async def check_conflict(users: List[User] = Depends(get_users_dependency)):
+    nest_users = "c844feff-89b0-45cb-8204-8fc47afbd348"
+    test_account = "2c756b31-2afa-4fbd-b011-b951529210d5"
     user_info_list = [
         {
             "username": user.username,
@@ -107,8 +109,10 @@ async def check_conflict(users: List[User] = Depends(get_users_dependency)):
         }
         for user in users
         if user.type == Role.internal
+        and nest_users in user.groups
+        and test_account not in user.groups
     ]
-    return users
+    return user_info_list
 
 
 @app.post("/register_user")
