@@ -8,3 +8,4 @@ http://<username>.hackclub.app {
 		hide .git .env
 	}
 }
+

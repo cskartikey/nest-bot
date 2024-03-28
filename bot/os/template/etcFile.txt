@@ -1,4 +1,3 @@
-
 <username>.hackclub.app {
   reverse_proxy unix//home/<username>/.webserver.sock {
     health_status 2xx
@@ -19,3 +18,4 @@ If this site really does exist, please make sure your Caddy is running. Try syst
     }
   }
 }
+
