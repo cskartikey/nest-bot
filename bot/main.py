@@ -97,13 +97,13 @@ def authorize(slack_user_id):
     }
     try:
         response = httpx.post(url=url, data=json.dumps(dataInDict))
-        password = json.loads(response.text)
         if response.status_code == 200:
+            password = response.json()
             return password.get("password")
         else:
             return False
     except Exception as e:
-        pass
+        print(e)
 
 
 def approved_home(username, name, email, ssh_key):
