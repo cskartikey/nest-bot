@@ -247,6 +247,8 @@ def handle_register_user(ack, body, client):
     """
 
     insert_query = db_helpers.read_sql_query("sql/register_user.sql")
+    f = open("json/reserved_usernames.json")
+    reserved_usernames = json.load(f)["reserved_usernames"]
     errors = {}
     slack_user_id = body["user"]["id"]
     username = body["view"]["state"]["values"]["username"]["username_input"]["value"]
@@ -264,7 +266,7 @@ def handle_register_user(ack, body, client):
             [username],
         )
         result = cursor.fetchone()
-        if result is not None and result[0] == username:
+        if result is not None and result[0] == username and username is not in reserved_usernames:
             errors["username"] = "The username is taken. Please choose another username"
             ack(response_action="errors", errors=errors)
             return
