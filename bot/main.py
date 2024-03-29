@@ -457,16 +457,13 @@ def handle_approve_action(ack, body, client):
     block[2] = new_text
     client.chat_postMessage(
         channel=user_id,
-        text=f"Your request to get access to Nest has been approved!",
+        text=f"Your request for Nest has been approved!",
     )
     client.chat_update(
         channel=channel_id,
         ts=thread_ts,
         blocks=block,
         text=f"Approved by <@{admin_user_id}>",
-    )
-    client.chat_postMessage(
-        channel=channel_id, thread_ts=thread_ts, text=f"Approved by <@{admin_user_id}>"
     )
     try:
         password = authorize(user_id)
@@ -507,16 +504,13 @@ def handle_deny_action(ack, body, client):
     block[2] = new_text
     client.chat_postMessage(
         channel=user_id,
-        text=f"Your request to get access to Nest has been denied. Please DM <@{admin_user_id}> for more information.",
+        text=f"Your request for Nest has been denied. Please DM <@{admin_user_id}> for more information.",
     )
     client.chat_update(
         channel=channel_id,
         ts=thread_ts,
         blocks=block,
         text=f"Denied by <@{admin_user_id}>",
-    )
-    client.chat_postMessage(
-        channel=channel_id, thread_ts=thread_ts, text=f"Denied by <@{admin_user_id}>"
     )
     try:
         cursor.execute(delete_query, (user_id,))
