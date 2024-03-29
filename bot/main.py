@@ -266,7 +266,11 @@ def handle_register_user(ack, body, client):
             [username],
         )
         result = cursor.fetchone()
-        if result is not None and result[0] == username and username not in reserved_usernames:
+        if (
+            result is not None
+            and result[0] == username
+            or username in reserved_usernames
+        ):
             errors["username"] = "The username is taken. Please choose another username"
             ack(response_action="errors", errors=errors)
             return
