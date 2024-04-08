@@ -1,3 +1,3 @@
 {
-    "reserved_usernames": ["www", "prometheus", "sheetparty", "ts", "sshws", "cockpit"]
+    "reserved_usernames": ["cockpit", "guides", "identity", "mail", "prometheus", "secure", "sheetparty", "sshws", "ts", "www"]
 }
