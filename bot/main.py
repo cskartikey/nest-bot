@@ -16,6 +16,8 @@ load_dotenv()
 slack_bot_token = os.environ.get("SLACK_BOT_TOKEN")
 slack_app_token = os.environ.get("SLACK_APP_TOKEN")
 
+fastapi = os.environ.get("FAST_API_URL")
+
 app = App(token=slack_bot_token)
 connection = psql.connect(
     database=os.environ.get("SQL_DATABASE"),
@@ -33,7 +35,7 @@ home_ids = {}
 
 def populate_users():
     try:
-        url = "http://127.0.0.1:41896/check_conflict"
+        url = f"{fastapi}/check_conflict"
         response = httpx.get(url=url)
         users = response.json()
         slack_user_id = 0
@@ -68,7 +70,7 @@ def populate_users():
 
 
 def authorize(slack_user_id):
-    url = "http://127.0.0.1:41896/register_user"
+    url = f"{fastapi}/register_user"
     selectUser = db_helpers.read_sql_query("sql/selectUserFromSlackID.sql")
     cursor.execute(
         selectUser,
