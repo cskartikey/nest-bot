@@ -176,7 +176,7 @@ async def register_user(user: User):
         setup_script(user.username)
         generate_configHome(user.username)
         logging.info(f"User configured{user.username}")
-    except request.HTTPError as http_err:
+    except HTTPError as http_err:
         logging.error(f"HTTP error when trying to register and set password for the user {http_err}")
     except Exception as e:
         logging.error(f"Unexpected error: {e}")

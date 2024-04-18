@@ -8,6 +8,7 @@ import helpers.db_helpers as db_helpers
 import json
 import re
 import httpx
+from httpx import HTTPError
 from datetime import datetime, timezone
 import logging
 
@@ -110,7 +111,7 @@ def authorize(slack_user_id):
         password = response.json()
         logging.info(f"{dataInDict['username']} authorized")
         return password.get("password")
-    except request.HTTPError as http_err:
+    except HTTPError as http_err:
         logging.error(f"HTTP error while authorizing user {dataInDict['username']}")
         return None
     except Exception as e:
