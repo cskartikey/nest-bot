@@ -127,7 +127,7 @@ async def register_user(user: User):
     passwordDict = {"password": password}
 
     # Set default values
-    user.last_login = "1970-01-01T00:00:00.000Z"
+    user.last_login = datetime.strptime("01/01/70 0:0:0", "%m/%d/%y %H:%M:%S")
     user.is_active = True
     user.is_superuser = False
     user.path = "users"
@@ -162,5 +162,6 @@ async def register_user(user: User):
         generate_configHome(user.username)
     except Exception as e:
         print(f"Unexpected error: {e}")
+        return None
 
     return {"message": "User registered successfully", "password": password}

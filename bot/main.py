@@ -105,7 +105,7 @@ def authorize(slack_user_id):
         else:
             return False
     except Exception as e:
-        print(e)
+        print(f"Possible None? Error: {e}")
 
 
 def approved_home(username, name, email, ssh_key):
@@ -475,7 +475,7 @@ def handle_approve_action(ack, body, client):
     )
     try:
         password = authorize(user_id)
-        if password != False:
+        if password != None:
             with open("json/markdown_message.json", "r") as read_file:
                 pwd_blocks = json.load(read_file)
             pwd_blocks[0]["text"][
@@ -485,6 +485,11 @@ def handle_approve_action(ack, body, client):
                 channel=user_id,
                 blocks=pwd_blocks,
                 text="Your password for your Nest account is {password}. Please continue through our Quickstart guide at https://guides.hackclub.app/index.php/Quickstart#Creating_an_Account.",
+            )
+        else:
+            client.chat_postMessage(
+                channel_id="C05VBD1B7V4",
+                text="Someone potentially got a None password, but they weren't sent a DM about it <@{user_id}>"
             )
         cursor.execute(update_query, (user_id,))
         connection.commit()
