@@ -35,7 +35,7 @@ cursor = connection.cursor()
 home_ids = {}
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     filename="app.log",
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%d-%b-%y %H:%M:%S",
@@ -499,7 +499,7 @@ def handle_approve_action(ack, body, client):
             )
         else:
             client.chat_postMessage(
-                channel_id="C05VBD1B7V4",
+                channel="C05VBD1B7V4",
                 text="Someone potentially got a None password, but they weren't sent a DM about it <@{user_id}>"
             )
         cursor.execute(update_query, (user_id,))

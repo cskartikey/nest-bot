@@ -2,7 +2,7 @@ import logging
 import psycopg2 as psql
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     filename="app.log",
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%d-%b-%y %H:%M:%S",

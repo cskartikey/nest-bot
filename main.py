@@ -21,7 +21,7 @@ AUTH = os.environ.get("AUTHENTIK")
 HEADERS = {"authorization": f"Bearer {AUTH}"}
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%d-%b-%y %H:%M:%S",
     handlers=[
@@ -178,6 +178,7 @@ async def register_user(user: User):
         logging.info(f"User configured{user.username}")
     except HTTPError as http_err:
         logging.error(f"HTTP error when trying to register and set password for the user {http_err}")
+        return None
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
         return None
