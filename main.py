@@ -13,11 +13,22 @@ import json
 import string
 import random
 from bot.os.osFunctions import generate_config, generate_configHome, setup_script
+import logging
 
 ROOT_URL = "https://identity.hackclub.app/api/v3/"
 load_dotenv()
 AUTH = os.environ.get("AUTHENTIK")
 HEADERS = {"authorization": f"Bearer {AUTH}"}
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%d-%b-%y %H:%M:%S",
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
 
 
 class Role(Enum):
@@ -96,23 +107,23 @@ async def get_users_dependency():
     return parsed_users
 
 
-@app.get("/check_conflict")
-async def check_conflict(users: List[User] = Depends(get_users_dependency)):
-    nest_users = "c844feff-89b0-45cb-8204-8fc47afbd348"
-    test_account = "2c756b31-2afa-4fbd-b011-b951529210d5"
-    user_info_list = [
-        {
-            "username": user.username,
-            "name": user.name,
-            "email": user.email,
-            "attributes": user.attributes,
-        }
-        for user in users
-        if user.type == Role.internal
-        and nest_users in user.groups
-        and test_account not in user.groups
-    ]
-    return user_info_list
+# @app.get("/check_conflict")
+# async def check_conflict(users: List[User] = Depends(get_users_dependency)):
+#     nest_users = "c844feff-89b0-45cb-8204-8fc47afbd348"
+#     test_account = "2c756b31-2afa-4fbd-b011-b951529210d5"
+#     user_info_list = [
+#         {
+#             "username": user.username,
+#             "name": user.name,
+#             "email": user.email,
+#             "attributes": user.attributes,
+#         }
+#         for user in users
+#         if user.type == Role.internal
+#         and nest_users in user.groups
+#         and test_account not in user.groups
+#     ]
+#     return user_info_list
 
 
 @app.post("/register_user")
@@ -144,23 +155,31 @@ async def register_user(user: User):
     url = fetchUrl("core/users/")
 
     try:
+        # Registring the user
         response = await app.requests_client.post(
             url=url, data=user_json, headers=headers
         )
+        response.raise_for_status()
+        logging.info(f"User Registered {user.username}")
         json_pk = response.text
         pk = json.loads(json_pk)
         pk_value = pk.get("pk")  # extract pk value to set password
         passwordUrl = fetchUrl(f"core/users/{pk_value}/set_password/")
+        #Setting password for the registered user
         passwordResponse = await app.requests_client.post(
             url=passwordUrl, data=passwordJson, headers=headers
         )
+        logging.info(f"Password set for {user.username}: {password}")
         passwordResponse.raise_for_status()
 
-        response.raise_for_status()
         generate_config(user.username)
         setup_script(user.username)
         generate_configHome(user.username)
+        logging.info(f"User configured{user.username}")
+    except request.HTTPError as http_err:
+        logging.error(f"HTTP error when trying to register and set password for the user {http_err}")
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        logging.error(f"Unexpected error: {e}")
+        return None
 
     return {"message": "User registered successfully", "password": password}

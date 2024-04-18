@@ -9,7 +9,7 @@ import json
 import re
 import httpx
 from datetime import datetime, timezone
-
+import logging
 
 load_dotenv()
 
@@ -19,6 +19,7 @@ slack_app_token = os.environ.get("SLACK_APP_TOKEN")
 fastapi = os.environ.get("FAST_API_URL")
 
 app = App(token=slack_bot_token)
+
 connection = psql.connect(
     database=os.environ.get("SQL_DATABASE"),
     host=os.environ.get("SQL_HOST"),
@@ -32,6 +33,12 @@ cursor = connection.cursor()
 
 home_ids = {}
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename="app.log",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%d-%b-%y %H:%M:%S",
+)
 
 def populate_users():
     try:
@@ -99,13 +106,16 @@ def authorize(slack_user_id):
     }
     try:
         response = httpx.post(url=url, data=json.dumps(dataInDict))
-        if response.status_code == 200:
-            password = response.json()
-            return password.get("password")
-        else:
-            return False
+        response.raise_for_status()
+        password = response.json()
+        logging.info(f"{dataInDict['username']} authorized")
+        return password.get("password")
+    except request.HTTPError as http_err:
+        logging.error(f"HTTP error while authorizing user {dataInDict['username']}")
+        return None
     except Exception as e:
         print(f"Possible None? Error: {e}")
+        return None
 
 
 def approved_home(username, name, email, ssh_key):
