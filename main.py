@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 from enum import Enum, auto
 import sys
@@ -42,7 +42,7 @@ class User(BaseModel):
     username: str
     name: str
     is_active: Optional[bool]
-    last_login: Optional[datetime]
+    last_login: Optional[Union[datetime, str]]
     is_superuser: Optional[bool]
     groups: Optional[List[str]]
     # groups_obj: Optional[List[GroupObj]]
@@ -127,7 +127,7 @@ async def register_user(user: User):
     passwordDict = {"password": password}
 
     # Set default values
-    user.last_login = datetime.strptime("01/01/70 0:0:0", "%m/%d/%y %H:%M:%S")
+    user.last_login = "1970-01-01T00:00:00.000Z"
     user.is_active = True
     user.is_superuser = False
     user.path = "users"
@@ -162,6 +162,5 @@ async def register_user(user: User):
         generate_configHome(user.username)
     except Exception as e:
         print(f"Unexpected error: {e}")
-        return None
 
     return {"message": "User registered successfully", "password": password}
