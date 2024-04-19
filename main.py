@@ -12,7 +12,7 @@ import sys
 import json
 import string
 import random
-from bot.os.osFunctions import generate_config, generate_configHome, setup_script
+from bot.os.osFunctions import generate_config, home_script, setup_script
 import logging
 
 ROOT_URL = "https://identity.hackclub.app/api/v3/"
@@ -174,7 +174,7 @@ async def register_user(user: User):
 
         generate_config(user.username)
         setup_script(user.username)
-        generate_configHome(user.username)
+        home_script(user.username)
         logging.info(f"User configured{user.username}")
     except HTTPError as http_err:
         logging.error(f"HTTP error when trying to register and set password for the user {http_err}")
