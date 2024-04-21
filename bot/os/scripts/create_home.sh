@@ -7,9 +7,9 @@ cp -r /etc/skel/* /home/$1
 # Generate Caddy config
 sed "s/<username>/$1/" /home/nest-internal/nest-bot/bot/os/template/homeFile.txt > /home/$1/Caddyfile
 
-# Set permissions
+# Set permissions (711 = rwx--x--x, x needed for caddy socket)
 chown -R $1:$(id -u $1) /home/$1
-chmod 700 /home/$1
+chmod 711 /home/$1
 
 # Start Caddy
 systemctl --user -M $1@ daemon-reload
