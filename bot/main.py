@@ -274,6 +274,11 @@ def handle_register_user(ack, body, client):
     current_utc_time = datetime.now(timezone.utc)
     selectUser = db_helpers.read_sql_query("sql/selectUser.sql")
     if username is not None:
+        if re.match('^(?![0-9]+$)(?!.*-$)(?!-)[a-zA-Z0-9-]{1,63}$', username) is None:
+            errors["username"] = "Invalid username."
+            ack(response_action="errors", errors=errors)
+            return
+        
         cursor.execute(
             selectUser,
             [username],
